@@ -1671,6 +1671,12 @@ Pinned tools (installed into `.tools/`):
 
 CI runs format checks, tests, and lint on push/PR.
 
+Regenerate the expanded command reference from the live schema when CLI surface changes:
+
+```bash
+make docs-commands
+```
+
 ### Integration Tests (Live Google APIs)
 
 Opt-in tests that hit real Google APIs using your stored `gog` credentials/tokens.
