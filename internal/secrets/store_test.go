@@ -30,11 +30,13 @@ func keyringConfig(keyringDir string) keyring.Config {
 
 func TestKeyringServiceName(t *testing.T) {
 	t.Setenv(keyringServiceNameEnv, "")
+
 	if got := keyringServiceName(); got != config.AppName {
 		t.Fatalf("expected default service name %q, got %q", config.AppName, got)
 	}
 
 	t.Setenv(keyringServiceNameEnv, " custom-gog ")
+
 	if got := keyringServiceName(); got != "custom-gog" {
 		t.Fatalf("expected env service name, got %q", got)
 	}
