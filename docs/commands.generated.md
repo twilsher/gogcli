@@ -277,6 +277,7 @@ Generated from `gog schema --json`.
 - `gog gmail (mail,email) labels (label) list (ls)` - List labels
 - `gog gmail (mail,email) labels (label) modify (update,edit,set) <threadId> ... [flags]` - Modify labels on threads
 - `gog gmail (mail,email) labels (label) rename (mv) <labelIdOrName> <newName>` - Rename a label
+- `gog gmail (mail,email) labels (label) style (color,colour) <labelIdOrName> [flags]` - Change a user label color or visibility
 - `gog gmail (mail,email) mark-read (read-messages) [<messageId> ...] [flags]` - Mark messages as read
 - `gog gmail (mail,email) messages (message,msg,msgs) <command>` - Message operations
 - `gog gmail (mail,email) messages (message,msg,msgs) modify (update,edit,set) <messageId> [flags]` - Modify labels on a single message

@@ -166,6 +166,26 @@ func formatPartialDate(d *people.Date) string {
 	return strings.Join(parts, "-")
 }
 
+func primaryGender(p *people.Person) string {
+	if p == nil || len(p.Genders) == 0 {
+		return ""
+	}
+	for _, g := range p.Genders {
+		if g == nil {
+			continue
+		}
+		if g.Metadata != nil && g.Metadata.Primary {
+			return firstNonEmpty(g.FormattedValue, g.Value)
+		}
+	}
+	for _, g := range p.Genders {
+		if g != nil {
+			return firstNonEmpty(g.FormattedValue, g.Value)
+		}
+	}
+	return ""
+}
+
 func sanitizeTab(s string) string {
 	return strings.ReplaceAll(s, "\t", " ")
 }

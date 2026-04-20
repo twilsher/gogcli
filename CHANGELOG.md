@@ -8,6 +8,8 @@
 - Slides: add `slides thumbnail` / `slides thumb` to fetch rendered slide thumbnail URLs or download PNG/JPEG images. (#498) — thanks @gianpaj.
 - Calendar: add `calendar create-calendar` / `new-calendar` to create secondary calendars with description, timezone, and location. (#455) — thanks @alexknowshtml.
 - Gmail: add `gmail forward` / `gmail fwd` to forward a message with optional note, verified send-as alias, and original attachments. (#482) — thanks @spencer-c-reed.
+- Gmail: add `gmail labels style` to update user label colors and list/message visibility. (#457) — thanks @iskw9973.
+- Contacts: add `--gender` to `contacts create` and `contacts update`, and include gender in `contacts get` text output. (#438) — thanks @klodr.
 - Gmail: add `gmail autoreply` to reply once to matching messages, label the thread for dedupe, and optionally archive/mark read. Includes docs and regression coverage for skip/reply flows.
 - Gmail: add `gmail messages search --full` to print complete message bodies instead of truncating text output. (#447) — thanks @GodsBoy.
 - Drive: allow `drive share --role commenter` for comment-only sharing. (#443) — thanks @pavelzak.

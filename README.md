@@ -674,6 +674,7 @@ gog gmail labels list
 gog gmail labels get INBOX --json  # Includes message counts
 gog gmail labels create "My Label"
 gog gmail labels rename "Old Label" "New Label"
+gog gmail labels style "My Label" --text-color "#ffffff" --background-color "#4285f4"
 gog gmail labels modify <threadId> --add STARRED --remove INBOX
 gog gmail labels delete <labelIdOrName>  # Deletes user label (guards system labels; confirm)
 
@@ -1022,6 +1023,7 @@ gog contacts create \
   --email "john@example.com" \
   --phone "+1234567890" \
   --address "12 St James's Square, London" \
+  --gender "male" \
   --relation "spouse=Jane Doe"
 
 gog contacts update people/<resourceName> \
@@ -1029,6 +1031,7 @@ gog contacts update people/<resourceName> \
   --email "jane@example.com" \
   --address "1 Infinite Loop, Cupertino" \
   --birthday "1990-05-12" \
+  --gender "female" \
   --notes "Met at WWDC" \
   --relation "friend=Bob"
 
