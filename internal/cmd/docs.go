@@ -124,11 +124,6 @@ func (c *DocsCreateCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return usage("empty title")
 	}
 
-	account, driveSvc, err := requireDriveService(ctx, flags)
-	if err != nil {
-		return err
-	}
-
 	f := &drive.File{
 		Name:     title,
 		MimeType: "application/vnd.google-apps.document",
@@ -136,6 +131,20 @@ func (c *DocsCreateCmd) Run(ctx context.Context, flags *RootFlags) error {
 	parent := strings.TrimSpace(c.Parent)
 	if parent != "" {
 		f.Parents = []string{parent}
+	}
+
+	if err := dryRunExit(ctx, flags, "docs.create", map[string]any{
+		strFile:      f,
+		"sourceFile": c.File,
+		"parent":     parent,
+		"pageless":   c.Pageless,
+	}); err != nil {
+		return err
+	}
+
+	account, driveSvc, err := requireDriveService(ctx, flags)
+	if err != nil {
+		return err
 	}
 
 	createCall := driveSvc.Files.Create(f).
