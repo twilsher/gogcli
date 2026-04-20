@@ -137,7 +137,7 @@ func buildRFC822(opts mailOptions, cfg *rfc822Config) ([]byte, error) {
 			return b.Bytes(), nil
 		case hasHTML && !hasPlain:
 			writeHeader(&b, "Content-Type", "text/html; charset=\"utf-8\"")
-			writeHeader(&b, "Content-Transfer-Encoding", "7bit")
+			writeHeader(&b, "Content-Transfer-Encoding", textTransferEncoding(htmlBody))
 			b.WriteString("\r\n")
 			writeBodyWithTrailingCRLF(&b, htmlBody)
 			return b.Bytes(), nil
@@ -172,7 +172,7 @@ func buildRFC822(opts mailOptions, cfg *rfc822Config) ([]byte, error) {
 		fmt.Fprintf(&b, "--%s--\r\n", altBoundary)
 	case hasHTML && !hasPlain:
 		b.WriteString("Content-Type: text/html; charset=\"utf-8\"\r\n")
-		b.WriteString("Content-Transfer-Encoding: 7bit\r\n\r\n")
+		fmt.Fprintf(&b, "Content-Transfer-Encoding: %s\r\n\r\n", textTransferEncoding(htmlBody))
 		writeBodyWithTrailingCRLF(&b, htmlBody)
 	default:
 		b.WriteString("Content-Type: text/plain; charset=\"utf-8\"\r\n")
@@ -307,9 +307,17 @@ func writeTextPart(b *bytes.Buffer, boundary string, contentType string, body st
 		b.WriteString("Content-Transfer-Encoding: quoted-printable\r\n\r\n")
 		writeQuotedPrintableBody(b, body)
 	} else {
-		b.WriteString("Content-Transfer-Encoding: 7bit\r\n\r\n")
+		_, _ = fmt.Fprintf(b, "Content-Transfer-Encoding: %s\r\n\r\n", textTransferEncoding(body))
 		writeBodyWithTrailingCRLF(b, body)
 	}
+}
+
+func textTransferEncoding(body string) string {
+	if isASCII(body) {
+		return "7bit"
+	}
+
+	return "8bit"
 }
 
 func randomBoundary() (string, error) {

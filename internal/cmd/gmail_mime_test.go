@@ -424,6 +424,42 @@ func TestBuildRFC822HTMLBodyStays7bit(t *testing.T) {
 	}
 }
 
+func TestBuildRFC822NonASCIIHTMLBodyUses8bit(t *testing.T) {
+	raw, err := buildRFC822(mailOptions{
+		From:     "a@b.com",
+		To:       []string{"c@d.com"},
+		Subject:  "Test",
+		BodyHTML: "<p>Hej åäö</p>",
+	}, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	s := string(raw)
+	if !strings.Contains(s, "Content-Transfer-Encoding: 8bit") {
+		t.Fatalf("expected 8bit encoding for non-ASCII HTML body, got: %q", s)
+	}
+	if strings.Contains(s, "Content-Transfer-Encoding: 7bit") {
+		t.Fatalf("non-ASCII HTML body must not be declared 7bit: %q", s)
+	}
+}
+
+func TestBuildRFC822NonASCIIHTMLPartUses8bit(t *testing.T) {
+	raw, err := buildRFC822(mailOptions{
+		From:     "a@b.com",
+		To:       []string{"c@d.com"},
+		Subject:  "Test",
+		Body:     "Plain body",
+		BodyHTML: "<p>Hej åäö</p>",
+	}, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	s := string(raw)
+	if !strings.Contains(s, "Content-Type: text/html; charset=\"utf-8\"\r\nContent-Transfer-Encoding: 8bit") {
+		t.Fatalf("expected 8bit encoding for non-ASCII HTML part, got: %q", s)
+	}
+}
+
 func TestFormatAddressHeadersParsesCommaSeparatedList(t *testing.T) {
 	got := formatAddressHeaders([]string{"Alice <a@b.com>, Bob <b@c.com>"})
 	parts := strings.SplitN(got, ", ", 2)
