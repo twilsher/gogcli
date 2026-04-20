@@ -303,7 +303,7 @@ func (s *KeyringStore) Keys() ([]string, error) {
 }
 
 type storedToken struct {
-	RefreshToken string    `json:"refresh_token"` //nolint:gosec // persisted token schema intentionally uses refresh_token
+	RefreshToken string    `json:"refresh_token"`
 	Services     []string  `json:"services,omitempty"`
 	Scopes       []string  `json:"scopes,omitempty"`
 	CreatedAt    time.Time `json:"created_at,omitempty"`
@@ -328,7 +328,7 @@ func (s *KeyringStore) SetToken(client string, email string, tok Token) error {
 		tok.CreatedAt = time.Now().UTC()
 	}
 
-	payload, err := json.Marshal(storedToken{
+	payload, err := json.Marshal(storedToken{ //nolint:gosec // persisted token schema intentionally includes refresh_token
 		RefreshToken: tok.RefreshToken,
 		Services:     tok.Services,
 		Scopes:       tok.Scopes,

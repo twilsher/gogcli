@@ -31,7 +31,7 @@ This replaces the existing separate CLIs (`gmcli`, `gccli`, `gdcli`) and the Pyt
 
 ## Language/runtime
 
-- Go `1.25` (see `go.mod`)
+- Go `1.26` (see `go.mod`)
 
 ## CLI framework
 

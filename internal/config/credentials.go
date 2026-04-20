@@ -14,17 +14,17 @@ var (
 
 type ClientCredentials struct {
 	ClientID     string `json:"client_id"`
-	ClientSecret string `json:"client_secret"` //nolint:gosec // required OAuth client payload field
+	ClientSecret string `json:"client_secret"`
 }
 
 type googleCredentialsFile struct {
 	Installed *struct {
 		ClientID     string `json:"client_id"`
-		ClientSecret string `json:"client_secret"` //nolint:gosec // required OAuth client payload field
+		ClientSecret string `json:"client_secret"`
 	} `json:"installed"`
 	Web *struct {
 		ClientID     string `json:"client_id"`
-		ClientSecret string `json:"client_secret"` //nolint:gosec // required OAuth client payload field
+		ClientSecret string `json:"client_secret"`
 	} `json:"web"`
 }
 
@@ -63,7 +63,7 @@ func WriteClientCredentialsFor(client string, c ClientCredentials) error {
 		return fmt.Errorf("resolve credentials path: %w", err)
 	}
 
-	b, err := json.MarshalIndent(c, "", "  ")
+	b, err := json.MarshalIndent(c, "", "  ") //nolint:gosec // required OAuth client credentials payload
 	if err != nil {
 		return fmt.Errorf("encode credentials json: %w", err)
 	}
