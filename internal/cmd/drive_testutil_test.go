@@ -31,6 +31,13 @@ func stubDriveService(svc *drive.Service) func(context.Context, string) (*drive.
 	return func(context.Context, string) (*drive.Service, error) { return svc, nil }
 }
 
+func stubDriveServiceForTest(t *testing.T, svc *drive.Service) {
+	t.Helper()
+	origNew := newDriveService
+	t.Cleanup(func() { newDriveService = origNew })
+	newDriveService = stubDriveService(svc)
+}
+
 func requireQuery(t *testing.T, r *http.Request, key, want string) {
 	t.Helper()
 	if got := r.URL.Query().Get(key); got != want {

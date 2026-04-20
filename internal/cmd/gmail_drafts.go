@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"os"
 	"strings"
@@ -225,11 +224,8 @@ func (c *GmailDraftsSendCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
-	account, svc, err := requireGmailService(ctx, flags)
+	_, svc, err := requireGmailSendService(ctx, flags)
 	if err != nil {
-		return err
-	}
-	if err = checkAccountNoSend(account); err != nil {
 		return err
 	}
 
@@ -237,17 +233,10 @@ func (c *GmailDraftsSendCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if err != nil {
 		return err
 	}
-	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(ctx, os.Stdout, map[string]any{
-			"messageId": msg.Id,
-			"threadId":  msg.ThreadId,
-		})
-	}
-	u.Out().Printf("message_id\t%s", msg.Id)
-	if msg.ThreadId != "" {
-		u.Out().Printf("thread_id\t%s", msg.ThreadId)
-	}
-	return nil
+	return writeGmailMessageResults(ctx, u, []gmailMessageResult{{
+		MessageID: msg.Id,
+		ThreadID:  msg.ThreadId,
+	}})
 }
 
 type GmailDraftsCreateCmd struct {
@@ -291,8 +280,7 @@ func (c draftComposeInput) validate() error {
 }
 
 func buildDraftMessage(ctx context.Context, svc *gmail.Service, account string, input draftComposeInput) (*gmail.Message, string, error) {
-	sendAsList, sendAsListErr := listSendAs(ctx, svc)
-	from, err := resolveComposeFrom(ctx, svc, account, input.From, sendAsList, sendAsListErr)
+	from, err := resolveComposeSender(ctx, svc, account, input.From)
 	if err != nil {
 		return nil, "", err
 	}
@@ -301,33 +289,24 @@ func buildDraftMessage(ctx context.Context, svc *gmail.Service, account string, 
 	if err != nil {
 		return nil, "", err
 	}
-	inReplyTo := info.InReplyTo
-	references := info.References
 	threadID := info.ThreadID
 	atts := attachmentsFromPaths(input.Attach)
 
-	raw, err := buildRFC822(mailOptions{
-		From:        from.header,
-		To:          splitCSV(input.To),
-		Cc:          splitCSV(input.Cc),
-		Bcc:         splitCSV(input.Bcc),
+	msg, err := buildGmailMessage(sendMessageOptions{
+		FromAddr:    from.header,
 		ReplyTo:     input.ReplyTo,
 		Subject:     input.Subject,
 		Body:        body,
 		BodyHTML:    htmlBody,
-		InReplyTo:   inReplyTo,
-		References:  references,
+		ReplyInfo:   info,
 		Attachments: atts,
+	}, sendBatch{
+		To:  splitCSV(input.To),
+		Cc:  splitCSV(input.Cc),
+		Bcc: splitCSV(input.Bcc),
 	}, &rfc822Config{allowMissingTo: true})
 	if err != nil {
 		return nil, "", err
-	}
-
-	msg := &gmail.Message{
-		Raw: base64.RawURLEncoding.EncodeToString(raw),
-	}
-	if threadID != "" {
-		msg.ThreadId = threadID
 	}
 
 	return msg, threadID, nil

@@ -2,16 +2,11 @@ package cmd
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"html"
 	"net/mail"
-	"os"
 	"strings"
 
-	"google.golang.org/api/gmail/v1"
-
-	"github.com/steipete/gogcli/internal/outfmt"
 	"github.com/steipete/gogcli/internal/ui"
 )
 
@@ -56,16 +51,12 @@ func (c *GmailForwardCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return dryRunErr
 	}
 
-	account, svc, err := requireGmailService(ctx, flags)
+	account, svc, err := requireGmailSendService(ctx, flags)
 	if err != nil {
 		return err
 	}
-	if err = checkAccountNoSend(account); err != nil {
-		return err
-	}
 
-	sendAsList, sendAsListErr := listSendAs(ctx, svc)
-	from, err := resolveComposeFrom(ctx, svc, account, c.From, sendAsList, sendAsListErr)
+	from, err := resolveComposeSender(ctx, svc, account, c.From)
 	if err != nil {
 		return err
 	}
@@ -119,27 +110,20 @@ func (c *GmailForwardCmd) Run(ctx context.Context, flags *RootFlags) error {
 	ccRecipients := splitCSV(c.Cc)
 	bccRecipients := splitCSV(c.Bcc)
 
-	raw, err := buildRFC822(mailOptions{
-		From:        from.header,
-		To:          toRecipients,
-		Cc:          ccRecipients,
-		Bcc:         bccRecipients,
+	msg, err := buildGmailMessage(sendMessageOptions{
+		FromAddr:    from.header,
 		Subject:     fwdSubject,
 		Body:        fwdPlain,
 		BodyHTML:    fwdHTML,
-		InReplyTo:   info.InReplyTo,
-		References:  info.References,
+		ReplyInfo:   info,
 		Attachments: attachments,
+	}, sendBatch{
+		To:  toRecipients,
+		Cc:  ccRecipients,
+		Bcc: bccRecipients,
 	}, nil)
 	if err != nil {
 		return fmt.Errorf("build message: %w", err)
-	}
-
-	msg := &gmail.Message{
-		Raw: base64.RawURLEncoding.EncodeToString(raw),
-	}
-	if info.ThreadID != "" {
-		msg.ThreadId = info.ThreadID
 	}
 
 	sent, err := svc.Users.Messages.Send("me", msg).Context(ctx).Do()
@@ -147,22 +131,11 @@ func (c *GmailForwardCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return fmt.Errorf("send forward: %w", err)
 	}
 
-	return writeForwardResult(ctx, u, from.header, sent)
-}
-
-func writeForwardResult(ctx context.Context, u *ui.UI, fromAddr string, sent *gmail.Message) error {
-	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(ctx, os.Stdout, map[string]any{
-			"from":      fromAddr,
-			"messageId": sent.Id,
-			"threadId":  sent.ThreadId,
-		})
-	}
-	u.Out().Printf("message_id\t%s", sent.Id)
-	if sent.ThreadId != "" {
-		u.Out().Printf("thread_id\t%s", sent.ThreadId)
-	}
-	return nil
+	return writeGmailMessageResults(ctx, u, []gmailMessageResult{{
+		From:      from.header,
+		MessageID: sent.Id,
+		ThreadID:  sent.ThreadId,
+	}})
 }
 
 type forwardedHeader struct {

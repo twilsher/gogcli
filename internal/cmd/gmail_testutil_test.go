@@ -25,3 +25,10 @@ func newGmailServiceForTest(t *testing.T, h http.HandlerFunc) (*gmail.Service, f
 	}
 	return svc, srv.Close
 }
+
+func stubGmailServiceForTest(t *testing.T, svc *gmail.Service) {
+	t.Helper()
+	origNew := newGmailService
+	t.Cleanup(func() { newGmailService = origNew })
+	newGmailService = func(context.Context, string) (*gmail.Service, error) { return svc, nil }
+}

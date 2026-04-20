@@ -35,6 +35,13 @@ func newTestCalendarService(t *testing.T, h http.Handler) (*calendar.Service, fu
 	return newCalendarServiceForTest(t, h)
 }
 
+func stubCalendarServiceForTest(t *testing.T, svc *calendar.Service) {
+	t.Helper()
+	origNew := newCalendarService
+	t.Cleanup(func() { newCalendarService = origNew })
+	newCalendarService = func(context.Context, string) (*calendar.Service, error) { return svc, nil }
+}
+
 func newCalendarOutputContext(t *testing.T, stdout, stderr io.Writer) context.Context {
 	t.Helper()
 

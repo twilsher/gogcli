@@ -124,11 +124,8 @@ func (c *GmailAutoReplyCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return dryRunErr
 	}
 
-	account, svc, err := requireGmailService(ctx, flags)
+	account, svc, err := requireGmailSendService(ctx, flags)
 	if err != nil {
-		return err
-	}
-	if err = checkAccountNoSend(account); err != nil {
 		return err
 	}
 	summary, err := runGmailAutoReply(ctx, svc, account, input)
@@ -172,8 +169,7 @@ func runGmailAutoReply(ctx context.Context, svc *gmail.Service, account string, 
 		Label: input.Label,
 	}
 
-	sendAsList, sendAsListErr := listSendAs(ctx, svc)
-	from, err := resolveComposeFrom(ctx, svc, account, input.From, sendAsList, sendAsListErr)
+	from, err := resolveComposeSender(ctx, svc, account, input.From)
 	if err != nil {
 		return summary, err
 	}

@@ -2,16 +2,13 @@ package cmd
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"html"
 	"net/mail"
-	"os"
 	"strings"
 
 	"google.golang.org/api/gmail/v1"
 
-	"github.com/steipete/gogcli/internal/outfmt"
 	"github.com/steipete/gogcli/internal/tracking"
 	"github.com/steipete/gogcli/internal/ui"
 )
@@ -128,16 +125,12 @@ func (c *GmailSendCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return dryRunErr
 	}
 
-	account, svc, err := requireGmailService(ctx, flags)
+	account, svc, err := requireGmailSendService(ctx, flags)
 	if err != nil {
 		return err
 	}
-	if err = checkAccountNoSend(account); err != nil {
-		return err
-	}
 
-	sendAsList, sendAsListErr := listSendAs(ctx, svc)
-	from, err := resolveComposeFrom(ctx, svc, account, c.From, sendAsList, sendAsListErr)
+	from, err := resolveComposeSender(ctx, svc, account, c.From)
 	if err != nil {
 		return err
 	}
@@ -296,11 +289,6 @@ func buildSendBatches(toRecipients, ccRecipients, bccRecipients []string, track,
 }
 
 func sendGmailBatches(ctx context.Context, svc *gmail.Service, opts sendMessageOptions, batches []sendBatch) ([]sendResult, error) {
-	reply := replyInfo{}
-	if opts.ReplyInfo != nil {
-		reply = *opts.ReplyInfo
-	}
-
 	results := make([]sendResult, 0, len(batches))
 	for _, batch := range batches {
 		htmlBody := opts.BodyHTML
@@ -321,29 +309,11 @@ func sendGmailBatches(ctx context.Context, svc *gmail.Service, opts sendMessageO
 			htmlBody = injectTrackingPixelHTML(htmlBody, pixelHTML)
 		}
 
-		raw, err := buildRFC822(mailOptions{
-			From:              opts.FromAddr,
-			To:                batch.To,
-			Cc:                batch.Cc,
-			Bcc:               batch.Bcc,
-			ReplyTo:           opts.ReplyTo,
-			Subject:           opts.Subject,
-			Body:              opts.Body,
-			BodyHTML:          htmlBody,
-			InReplyTo:         reply.InReplyTo,
-			References:        reply.References,
-			AdditionalHeaders: opts.Headers,
-			Attachments:       opts.Attachments,
-		}, nil)
+		messageOpts := opts
+		messageOpts.BodyHTML = htmlBody
+		msg, err := buildGmailMessage(messageOpts, batch, nil)
 		if err != nil {
 			return nil, err
-		}
-
-		msg := &gmail.Message{
-			Raw: base64.RawURLEncoding.EncodeToString(raw),
-		}
-		if reply.ThreadID != "" {
-			msg.ThreadId = reply.ThreadID
 		}
 
 		sent, err := svc.Users.Messages.Send("me", msg).Context(ctx).Do()
@@ -367,65 +337,17 @@ func sendGmailBatches(ctx context.Context, svc *gmail.Service, opts sendMessageO
 }
 
 func writeSendResults(ctx context.Context, u *ui.UI, fromAddr string, results []sendResult) error {
-	if outfmt.IsJSON(ctx) {
-		if len(results) == 1 {
-			resp := map[string]any{
-				"messageId": results[0].MessageID,
-				"threadId":  results[0].ThreadID,
-				"from":      fromAddr,
-			}
-			if results[0].TrackingID != "" {
-				resp["tracking_id"] = results[0].TrackingID
-			}
-			return outfmt.WriteJSON(ctx, os.Stdout, resp)
-		}
-
-		items := make([]map[string]any, 0, len(results))
-		for _, r := range results {
-			item := map[string]any{
-				"messageId": r.MessageID,
-				"threadId":  r.ThreadID,
-				"from":      fromAddr,
-			}
-			if r.To != "" {
-				item["to"] = r.To
-			}
-			if r.TrackingID != "" {
-				item["tracking_id"] = r.TrackingID
-			}
-			items = append(items, item)
-		}
-		return outfmt.WriteJSON(ctx, os.Stdout, map[string]any{"messages": items})
+	items := make([]gmailMessageResult, 0, len(results))
+	for _, r := range results {
+		items = append(items, gmailMessageResult{
+			From:       fromAddr,
+			To:         r.To,
+			MessageID:  r.MessageID,
+			ThreadID:   r.ThreadID,
+			TrackingID: r.TrackingID,
+		})
 	}
-
-	if len(results) == 1 {
-		u.Out().Printf("message_id\t%s", results[0].MessageID)
-		if results[0].ThreadID != "" {
-			u.Out().Printf("thread_id\t%s", results[0].ThreadID)
-		}
-		if results[0].TrackingID != "" {
-			u.Out().Printf("tracking_id\t%s", results[0].TrackingID)
-		}
-		return nil
-	}
-
-	for i, r := range results {
-		if i > 0 {
-			u.Out().Println("")
-		}
-		if r.To != "" {
-			u.Out().Printf("to\t%s", r.To)
-		}
-		u.Out().Printf("message_id\t%s", r.MessageID)
-		if r.ThreadID != "" {
-			u.Out().Printf("thread_id\t%s", r.ThreadID)
-		}
-		if r.TrackingID != "" {
-			u.Out().Printf("tracking_id\t%s", r.TrackingID)
-		}
-	}
-
-	return nil
+	return writeGmailMessageResults(ctx, u, items)
 }
 
 func firstRecipient(toRecipients, ccRecipients, bccRecipients []string) string {

@@ -8,7 +8,14 @@ import (
 	"github.com/steipete/gogcli/internal/config"
 )
 
-const gmailSendCommand = "send"
+var gmailSendCommandPaths = map[string]struct{}{
+	"send":              {},
+	"gmail.send":        {},
+	"gmail.autoreply":   {},
+	"gmail.forward":     {},
+	"gmail.fwd":         {},
+	"gmail.drafts.send": {},
+}
 
 func enforceGmailNoSend(kctx *kong.Context, flags *RootFlags) error {
 	if !isGmailSendPath(commandPath(kctx.Command())) {
@@ -42,18 +49,6 @@ func isGmailSendPath(path []string) bool {
 	if len(path) == 0 {
 		return false
 	}
-	if path[0] == gmailSendCommand {
-		return true
-	}
-	if len(path) < 2 || path[0] != "gmail" {
-		return false
-	}
-	switch path[1] {
-	case gmailSendCommand, "autoreply", "forward":
-		return true
-	case "drafts":
-		return len(path) >= 3 && path[2] == gmailSendCommand
-	default:
-		return false
-	}
+	_, ok := gmailSendCommandPaths[strings.Join(path, ".")]
+	return ok
 }

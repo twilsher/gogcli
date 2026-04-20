@@ -14,9 +14,6 @@ import (
 )
 
 func TestCalendarCreateCalendarCmd_RunJSON(t *testing.T) {
-	origNew := newCalendarService
-	t.Cleanup(func() { newCalendarService = origNew })
-
 	var got calendar.Calendar
 	svc, closeSvc := newCalendarServiceForTest(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/calendar/v3")
@@ -37,7 +34,7 @@ func TestCalendarCreateCalendarCmd_RunJSON(t *testing.T) {
 		})
 	}))
 	defer closeSvc()
-	newCalendarService = func(context.Context, string) (*calendar.Service, error) { return svc, nil }
+	stubCalendarServiceForTest(t, svc)
 
 	cmd := &CalendarCreateCalendarCmd{
 		Summary:     "Team Calendar",

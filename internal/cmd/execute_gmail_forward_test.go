@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"io"
@@ -61,9 +60,6 @@ func mockOriginalMessage(withAttachment bool) map[string]any {
 }
 
 func TestExecute_GmailForward_Basic(t *testing.T) {
-	origNew := newGmailService
-	t.Cleanup(func() { newGmailService = origNew })
-
 	var sentRaw string
 	var sentThreadID string
 
@@ -94,7 +90,7 @@ func TestExecute_GmailForward_Basic(t *testing.T) {
 		}
 	})
 	defer cleanup()
-	newGmailService = func(context.Context, string) (*gmail.Service, error) { return svc, nil }
+	stubGmailServiceForTest(t, svc)
 
 	_ = captureStdout(t, func() {
 		_ = captureStderr(t, func() {
@@ -150,9 +146,6 @@ func TestExecute_GmailForward_Basic(t *testing.T) {
 }
 
 func TestExecute_GmailForward_WithAttachments(t *testing.T) {
-	origNew := newGmailService
-	t.Cleanup(func() { newGmailService = origNew })
-
 	attachmentFetched := false
 
 	svc, cleanup := newGmailServiceForTest(t, func(w http.ResponseWriter, r *http.Request) {
@@ -189,7 +182,7 @@ func TestExecute_GmailForward_WithAttachments(t *testing.T) {
 		}
 	})
 	defer cleanup()
-	newGmailService = func(context.Context, string) (*gmail.Service, error) { return svc, nil }
+	stubGmailServiceForTest(t, svc)
 
 	_ = captureStdout(t, func() {
 		_ = captureStderr(t, func() {
@@ -210,9 +203,6 @@ func TestExecute_GmailForward_WithAttachments(t *testing.T) {
 }
 
 func TestExecute_GmailForward_SkipAttachments(t *testing.T) {
-	origNew := newGmailService
-	t.Cleanup(func() { newGmailService = origNew })
-
 	attachmentFetched := false
 
 	svc, cleanup := newGmailServiceForTest(t, func(w http.ResponseWriter, r *http.Request) {
@@ -240,7 +230,7 @@ func TestExecute_GmailForward_SkipAttachments(t *testing.T) {
 		}
 	})
 	defer cleanup()
-	newGmailService = func(context.Context, string) (*gmail.Service, error) { return svc, nil }
+	stubGmailServiceForTest(t, svc)
 
 	_ = captureStdout(t, func() {
 		_ = captureStderr(t, func() {
@@ -269,16 +259,13 @@ func TestExecute_GmailForward_NoSendAccountBlocksBeforeSend(t *testing.T) {
 		t.Fatalf("WriteConfig: %v", err)
 	}
 
-	origNew := newGmailService
-	t.Cleanup(func() { newGmailService = origNew })
-
 	requests := 0
 	svc, cleanup := newGmailServiceForTest(t, func(w http.ResponseWriter, r *http.Request) {
 		requests++
 		http.NotFound(w, r)
 	})
 	defer cleanup()
-	newGmailService = func(context.Context, string) (*gmail.Service, error) { return svc, nil }
+	stubGmailServiceForTest(t, svc)
 
 	err := Execute([]string{
 		"--account", "me@example.com",
