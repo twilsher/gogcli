@@ -73,6 +73,30 @@ func TestSaveConfigSecretsInKeyring(t *testing.T) {
 	}
 }
 
+func TestShouldLoadTrackingSecrets(t *testing.T) {
+	tests := []struct {
+		name string
+		cfg  *Config
+		want bool
+	}{
+		{name: "nil", cfg: nil, want: false},
+		{name: "explicit keyring", cfg: &Config{SecretsInKeyring: true, TrackingKey: "file", AdminKey: "file"}, want: true},
+		{name: "legacy empty file secrets", cfg: &Config{}, want: true},
+		{name: "legacy whitespace secrets", cfg: &Config{TrackingKey: " ", AdminKey: "\t"}, want: true},
+		{name: "file tracking key", cfg: &Config{TrackingKey: "file"}, want: false},
+		{name: "file admin key", cfg: &Config{AdminKey: "file"}, want: false},
+		{name: "file both keys", cfg: &Config{TrackingKey: "file", AdminKey: "admin"}, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := shouldLoadTrackingSecrets(tt.cfg); got != tt.want {
+				t.Fatalf("shouldLoadTrackingSecrets = %t, want %t", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestLoadConfigPrefersFileSecretsWhenKeyringHasStaleValues(t *testing.T) {
 	setupTrackingConfigEnv(t)
 

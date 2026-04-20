@@ -16,6 +16,30 @@ import (
 
 var errUnexpectedChatServiceCall = errors.New("unexpected chat service call")
 
+func TestChatSpaceDisplayNameMatches(t *testing.T) {
+	tests := []struct {
+		name        string
+		displayName string
+		query       string
+		exact       bool
+		want        bool
+	}{
+		{name: "substring case insensitive", displayName: "My Project Team", query: "project", want: true},
+		{name: "substring miss", displayName: "Random Channel", query: "project", want: false},
+		{name: "exact case insensitive", displayName: "Project Alpha", query: "project alpha", exact: true, want: true},
+		{name: "exact does not substring", displayName: "Project Alpha", query: "project", exact: true, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := chatSpaceDisplayNameMatches(tt.displayName, tt.query, tt.exact)
+			if got != tt.want {
+				t.Fatalf("match = %t, want %t", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestExecute_ChatSpacesList_Text(t *testing.T) {
 	origNew := newChatService
 	t.Cleanup(func() { newChatService = origNew })

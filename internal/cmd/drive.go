@@ -510,12 +510,9 @@ func (c *DriveShareCmd) Run(ctx context.Context, flags *RootFlags) error {
 		// Should be guarded by enum, but keep a friendly message for future changes.
 		return usage("invalid --to (expected anyone|user|domain)")
 	}
-	role := strings.TrimSpace(c.Role)
-	if role == "" {
-		role = drivePermRoleReader
-	}
-	if role != drivePermRoleReader && role != drivePermRoleWriter && role != drivePermRoleCommenter {
-		return usage("invalid --role (expected reader|writer|commenter)")
+	role, err := normalizeDrivePermissionRole(c.Role)
+	if err != nil {
+		return err
 	}
 	if to == driveShareToAnyone {
 		if confirmErr := confirmDestructive(ctx, flags, fmt.Sprintf("share drive file %s with anyone (public)", fileID)); confirmErr != nil {
@@ -568,6 +565,19 @@ func (c *DriveShareCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u.Out().Printf("link\t%s", link)
 	u.Out().Printf("permission_id\t%s", created.Id)
 	return nil
+}
+
+func normalizeDrivePermissionRole(role string) (string, error) {
+	role = strings.TrimSpace(role)
+	if role == "" {
+		return drivePermRoleReader, nil
+	}
+	switch role {
+	case drivePermRoleReader, drivePermRoleWriter, drivePermRoleCommenter:
+		return role, nil
+	default:
+		return "", usage("invalid --role (expected reader|writer|commenter)")
+	}
 }
 
 type DriveUnshareCmd struct {

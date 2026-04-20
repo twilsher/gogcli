@@ -109,6 +109,106 @@ func TestDriveShare_DefaultRole(t *testing.T) {
 	}
 }
 
+func TestNormalizeDrivePermissionRole(t *testing.T) {
+	tests := []struct {
+		name    string
+		role    string
+		want    string
+		wantErr bool
+	}{
+		{name: "default", role: "", want: drivePermRoleReader},
+		{name: "trimmed", role: " writer ", want: drivePermRoleWriter},
+		{name: "commenter", role: drivePermRoleCommenter, want: drivePermRoleCommenter},
+		{name: "invalid", role: "owner", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := normalizeDrivePermissionRole(tt.role)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("normalizeDrivePermissionRole: %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("role = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDriveShare_CommenterRole(t *testing.T) {
+	origNew := newDriveService
+	t.Cleanup(func() { newDriveService = origNew })
+
+	var sawCommenterRole bool
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/drive/v3")
+		switch {
+		case r.Method == http.MethodPost && strings.HasSuffix(path, "/permissions"):
+			var req map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				t.Fatalf("decode permission request: %v", err)
+			}
+			if req["role"] == drivePermRoleCommenter {
+				sawCommenterRole = true
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"id":           "perm1",
+				"type":         "user",
+				"role":         req["role"],
+				"emailAddress": req["emailAddress"],
+			})
+			return
+		case r.Method == http.MethodGet && strings.HasPrefix(path, "/files/"):
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"id":          "f1",
+				"name":        "File",
+				"webViewLink": "https://drive.example/f1",
+			})
+			return
+		default:
+			http.NotFound(w, r)
+			return
+		}
+	}))
+	defer srv.Close()
+
+	svc, err := drive.NewService(context.Background(),
+		option.WithoutAuthentication(),
+		option.WithHTTPClient(srv.Client()),
+		option.WithEndpoint(srv.URL+"/"),
+	)
+	if err != nil {
+		t.Fatalf("NewDriveService: %v", err)
+	}
+	newDriveService = func(context.Context, string) (*drive.Service, error) { return svc, nil }
+
+	u, uiErr := ui.New(ui.Options{Stdout: io.Discard, Stderr: io.Discard, Color: "never"})
+	if uiErr != nil {
+		t.Fatalf("ui.New: %v", uiErr)
+	}
+	ctx := ui.WithUI(context.Background(), u)
+	flags := &RootFlags{Account: "a@b.com"}
+
+	err = (&DriveShareCmd{
+		FileID: "f1",
+		To:     driveShareToUser,
+		Email:  "x@y.com",
+		Role:   drivePermRoleCommenter,
+	}).Run(ctx, flags)
+	if err != nil {
+		t.Fatalf("DriveShareCmd.Run: %v", err)
+	}
+	if !sawCommenterRole {
+		t.Fatalf("expected commenter role in permission create request")
+	}
+}
+
 func TestDriveDownload_TextOutput(t *testing.T) {
 	origNew := newDriveService
 	origDownload := driveDownload

@@ -149,7 +149,6 @@ func (c *ChatSpacesFindCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
-	needle := strings.ToLower(displayName)
 	fetch := func(pageToken string) ([]*chat.Space, string, error) {
 		call := svc.Spaces.List().PageSize(c.Max).Context(ctx)
 		if strings.TrimSpace(pageToken) != "" {
@@ -164,13 +163,7 @@ func (c *ChatSpacesFindCmd) Run(ctx context.Context, flags *RootFlags) error {
 			if space == nil {
 				continue
 			}
-			if c.Exact {
-				if strings.EqualFold(space.DisplayName, displayName) {
-					matches = append(matches, space)
-				}
-				continue
-			}
-			if strings.Contains(strings.ToLower(space.DisplayName), needle) {
+			if chatSpaceDisplayNameMatches(space.DisplayName, displayName, c.Exact) {
 				matches = append(matches, space)
 			}
 		}
@@ -223,6 +216,13 @@ func (c *ChatSpacesFindCmd) Run(ctx context.Context, flags *RootFlags) error {
 		)
 	}
 	return nil
+}
+
+func chatSpaceDisplayNameMatches(displayName, query string, exact bool) bool {
+	if exact {
+		return strings.EqualFold(displayName, query)
+	}
+	return strings.Contains(strings.ToLower(displayName), strings.ToLower(query))
 }
 
 type ChatSpacesCreateCmd struct {
