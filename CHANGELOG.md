@@ -9,6 +9,7 @@
 - Docs: use UTF-16 offsets for sed formatting ranges and preserve `&` whole-match replacements. (#483) — thanks @bill492.
 - Gmail: encode plain-text send bodies as quoted-printable so long lines are not hard-wrapped in transit. (#476) — thanks @shashankkr9.
 - Contacts: reject all individual update flags when `contacts update --from-file` is used. (#439) — thanks @klodr.
+- Auth: remove stale aliases and account-client mappings from config when `auth remove` deletes an account. (#467) — thanks @mvanhorn.
 
 ## 0.12.0 - 2026-03-09
 
