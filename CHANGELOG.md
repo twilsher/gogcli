@@ -5,6 +5,9 @@
 ### Added
 - Gmail: add `gmail autoreply` to reply once to matching messages, label the thread for dedupe, and optionally archive/mark read. Includes docs and regression coverage for skip/reply flows.
 
+### Fixed
+- Docs: use UTF-16 offsets for sed formatting ranges and preserve `&` whole-match replacements. (#483) — thanks @bill492.
+
 ## 0.12.0 - 2026-03-09
 
 ### Highlights
