@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.13.0 - 2026-04-20
 
 ### Highlights
 - Gmail: safer sending and richer message workflows, with no-send guardrails, forwarding, autoreplies, full-body search output, label styling, and better MIME/body handling. (#454, #482, #447, #457, #476, #477, #511) — thanks @veteranbv, @spencer-c-reed, @GodsBoy, @iskw9973, @shashankkr9, @yeager, and @dinakars777.
