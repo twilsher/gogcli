@@ -139,6 +139,30 @@ func TestParseRangeExpr(t *testing.T) {
 	}
 }
 
+func TestParseWeekdayName(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		value string
+		want  time.Weekday
+	}{
+		{value: "tue", want: time.Tuesday},
+		{value: "tues", want: time.Tuesday},
+		{value: "thurs", want: time.Thursday},
+		{value: " Thursday ", want: time.Thursday},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.value, func(t *testing.T) {
+			t.Parallel()
+			got, ok := ParseWeekdayName(tc.value)
+			if !ok || got != tc.want {
+				t.Fatalf("ParseWeekdayName(%q) = %v ok=%v, want %v true", tc.value, got, ok, tc.want)
+			}
+		})
+	}
+}
+
 //nolint:wsl_v5
 func TestParseSince(t *testing.T) {
 	t.Parallel()
