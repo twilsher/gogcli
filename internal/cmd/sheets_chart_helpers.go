@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -57,17 +56,39 @@ func chartSpecIsZero(spec *sheets.ChartSpec) bool {
 var gridRangeType = reflect.TypeOf(sheets.GridRange{})
 
 func remapZeroSheetIDsInChartSpec(spec *sheets.ChartSpec, sheetID int64) {
-	remapZeroSheetIDs(reflect.ValueOf(spec), sheetID)
+	normalizeZeroSheetIDsInChartSpec(spec, sheetID, false)
 }
 
-func remapZeroSheetIDs(v reflect.Value, sheetID int64) {
+func normalizeZeroSheetIDsInChartSpec(spec *sheets.ChartSpec, sheetID int64, preserveZero bool) {
+	visitGridRanges(reflect.ValueOf(spec), func(gr *sheets.GridRange) {
+		if gr == nil || gr.SheetId != 0 {
+			return
+		}
+		if !preserveZero {
+			gr.SheetId = sheetID
+		}
+		gr.ForceSendFields = appendForceSendField(gr.ForceSendFields, "SheetId")
+	})
+}
+
+func chartSpecHasZeroSheetIDs(spec *sheets.ChartSpec) bool {
+	var found bool
+	visitGridRanges(reflect.ValueOf(spec), func(gr *sheets.GridRange) {
+		if gr != nil && gr.SheetId == 0 {
+			found = true
+		}
+	})
+	return found
+}
+
+func visitGridRanges(v reflect.Value, visit func(*sheets.GridRange)) {
 	if !v.IsValid() {
 		return
 	}
 	switch v.Kind() {
 	case reflect.Interface:
 		if !v.IsNil() {
-			remapZeroSheetIDs(v.Elem(), sheetID)
+			visitGridRanges(v.Elem(), visit)
 		}
 	case reflect.Ptr:
 		if v.IsNil() {
@@ -75,37 +96,29 @@ func remapZeroSheetIDs(v reflect.Value, sheetID int64) {
 		}
 		if v.Type().Elem() == gridRangeType {
 			if v.CanInterface() {
-				remapGridRange(v.Interface().(*sheets.GridRange), sheetID)
+				visit(v.Interface().(*sheets.GridRange))
 			}
 			return
 		}
-		remapZeroSheetIDs(v.Elem(), sheetID)
+		visitGridRanges(v.Elem(), visit)
 	case reflect.Struct:
 		if v.Type() == gridRangeType {
 			if v.CanAddr() && v.Addr().CanInterface() {
-				remapGridRange(v.Addr().Interface().(*sheets.GridRange), sheetID)
+				visit(v.Addr().Interface().(*sheets.GridRange))
 			}
 			return
 		}
 		for i := 0; i < v.NumField(); i++ {
 			field := v.Field(i)
 			if field.CanSet() || field.Kind() == reflect.Ptr || field.Kind() == reflect.Slice || field.Kind() == reflect.Interface {
-				remapZeroSheetIDs(field, sheetID)
+				visitGridRanges(field, visit)
 			}
 		}
 	case reflect.Slice:
 		for i := 0; i < v.Len(); i++ {
-			remapZeroSheetIDs(v.Index(i), sheetID)
+			visitGridRanges(v.Index(i), visit)
 		}
 	}
-}
-
-func remapGridRange(gr *sheets.GridRange, sheetID int64) {
-	if gr == nil || gr.SheetId != 0 {
-		return
-	}
-	gr.SheetId = sheetID
-	gr.ForceSendFields = appendForceSendField(gr.ForceSendFields, "SheetId")
 }
 
 func appendForceSendField(fields []string, field string) []string {
@@ -117,54 +130,99 @@ func appendForceSendField(fields []string, field string) []string {
 	return append(fields, field)
 }
 
-func firstSheetID(svc *sheets.Service, spreadsheetID string) (int64, error) {
+type chartSheetResolution struct {
+	SheetID        int64
+	HasSheetIDZero bool
+}
+
+func firstSheetResolution(svc *sheets.Service, spreadsheetID string) (chartSheetResolution, error) {
 	resp, err := svc.Spreadsheets.Get(spreadsheetID).
 		Fields("sheets(properties(sheetId,title))").
 		Do()
 	if err != nil {
-		return 0, err
+		return chartSheetResolution{}, err
 	}
-	for _, sheet := range resp.Sheets {
-		if sheet != nil && sheet.Properties != nil {
-			return sheet.Properties.SheetId, nil
-		}
-	}
-	return 0, usage("spreadsheet has no sheets")
-}
 
-func findChartSheetID(svc *sheets.Service, spreadsheetID string, chartID int64) (int64, error) {
-	resp, err := svc.Spreadsheets.Get(spreadsheetID).
-		Fields("sheets(properties(sheetId,title),charts(chartId))").
-		Do()
-	if err != nil {
-		return 0, err
-	}
+	var res chartSheetResolution
+	var found bool
 	for _, sheet := range resp.Sheets {
 		if sheet == nil || sheet.Properties == nil {
 			continue
 		}
+		if !found {
+			res.SheetID = sheet.Properties.SheetId
+			found = true
+		}
+		if sheet.Properties.SheetId == 0 {
+			res.HasSheetIDZero = true
+		}
+	}
+	if found {
+		return res, nil
+	}
+	return chartSheetResolution{}, usage("spreadsheet has no sheets")
+}
+
+func findChartSheetResolution(svc *sheets.Service, spreadsheetID string, chartID int64) (chartSheetResolution, error) {
+	resp, err := svc.Spreadsheets.Get(spreadsheetID).
+		Fields("sheets(properties(sheetId,title),charts(chartId))").
+		Do()
+	if err != nil {
+		return chartSheetResolution{}, err
+	}
+
+	var res chartSheetResolution
+	var found bool
+	for _, sheet := range resp.Sheets {
+		if sheet == nil || sheet.Properties == nil {
+			continue
+		}
+		if sheet.Properties.SheetId == 0 {
+			res.HasSheetIDZero = true
+		}
 		for _, chart := range sheet.Charts {
 			if chart != nil && chart.ChartId == chartID {
-				return sheet.Properties.SheetId, nil
+				res.SheetID = sheet.Properties.SheetId
+				found = true
 			}
 		}
 	}
-	return 0, usagef("chart %d not found", chartID)
+	if found {
+		return res, nil
+	}
+	return chartSheetResolution{}, usagef("chart %d not found", chartID)
 }
 
-func resolveChartSheetID(ctx context.Context, svc *sheets.Service, spreadsheetID, sheetName string) (int64, error) {
-	if sheetName != "" {
-		sheetIDs, err := fetchSheetIDMap(ctx, svc, spreadsheetID)
-		if err != nil {
-			return 0, err
-		}
-		id, ok := sheetIDs[sheetName]
-		if !ok {
-			return 0, usagef("unknown sheet %q", sheetName)
-		}
-		return id, nil
+func resolveChartSheetResolution(svc *sheets.Service, spreadsheetID, sheetName string) (chartSheetResolution, error) {
+	if sheetName == "" {
+		return firstSheetResolution(svc, spreadsheetID)
 	}
-	return firstSheetID(svc, spreadsheetID)
+
+	resp, err := svc.Spreadsheets.Get(spreadsheetID).
+		Fields("sheets(properties(sheetId,title))").
+		Do()
+	if err != nil {
+		return chartSheetResolution{}, err
+	}
+
+	var res chartSheetResolution
+	var found bool
+	for _, sheet := range resp.Sheets {
+		if sheet == nil || sheet.Properties == nil {
+			continue
+		}
+		if sheet.Properties.SheetId == 0 {
+			res.HasSheetIDZero = true
+		}
+		if sheet.Properties.Title == sheetName {
+			res.SheetID = sheet.Properties.SheetId
+			found = true
+		}
+	}
+	if !found {
+		return chartSheetResolution{}, usagef("unknown sheet %q", sheetName)
+	}
+	return res, nil
 }
 
 func buildChartPosition(sheetID int64, anchor string, width, height int64) (*sheets.EmbeddedObjectPosition, error) {

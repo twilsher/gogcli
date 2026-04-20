@@ -114,6 +114,71 @@ func TestSheetsChartCreate_WithAnchor(t *testing.T) {
 	}
 }
 
+func TestSheetsChartCreate_RemapsSourceRangeWithoutAnchor(t *testing.T) {
+	recorder := &chartRecorder{}
+	ctx, flags, cleanup := newChartTestContext(t, recorder)
+	defer cleanup()
+
+	ctx = outfmt.WithMode(ctx, outfmt.Mode{JSON: true})
+
+	specJSON := `{"title":"Source Chart","basicChart":{"chartType":"LINE","domains":[{"domain":{"sourceRange":{"sources":[{"sheetId":0,"startRowIndex":0,"endRowIndex":3}]}}}],"series":[{"series":{"sourceRange":{"sources":[{"sheetId":0,"startRowIndex":0,"endRowIndex":3}]}}}]}}`
+
+	captureStdout(t, func() {
+		if err := runKong(t, &SheetsChartCreateCmd{}, []string{
+			"s1", "--spec-json", specJSON,
+		}, ctx, flags); err != nil {
+			t.Fatalf("chart create: %v", err)
+		}
+	})
+
+	addChart, ok := recorder.requests[0]["addChart"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected addChart, got %v", recorder.requests[0])
+	}
+	chart := addChart["chart"].(map[string]any)
+	spec := chart["spec"].(map[string]any)
+	source := basicChartDomainSource(t, spec)
+	if source["sheetId"] != float64(123) {
+		t.Fatalf("expected remapped sheetId 123, got %v", source["sheetId"])
+	}
+}
+
+func TestSheetsChartCreate_PreservesSheetIDZeroWhenSpreadsheetHasZero(t *testing.T) {
+	recorder := &chartRecorder{}
+	ctx, flags, cleanup := newChartTestContext(t, recorder)
+	defer cleanup()
+
+	ctx = outfmt.WithMode(ctx, outfmt.Mode{JSON: true})
+
+	specJSON := `{"title":"Zero Chart","basicChart":{"chartType":"LINE","domains":[{"domain":{"sourceRange":{"sources":[{"sheetId":0,"startRowIndex":0,"endRowIndex":3}]}}}],"series":[{"series":{"sourceRange":{"sources":[{"sheetId":0,"startRowIndex":0,"endRowIndex":3}]}}}]}}`
+
+	captureStdout(t, func() {
+		if err := runKong(t, &SheetsChartCreateCmd{}, []string{
+			"zero", "--spec-json", specJSON, "--sheet", "Sheet1", "--anchor", "E10",
+		}, ctx, flags); err != nil {
+			t.Fatalf("chart create: %v", err)
+		}
+	})
+
+	addChart, ok := recorder.requests[0]["addChart"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected addChart, got %v", recorder.requests[0])
+	}
+	chart := addChart["chart"].(map[string]any)
+	spec := chart["spec"].(map[string]any)
+	source := basicChartDomainSource(t, spec)
+	if source["sheetId"] != float64(0) {
+		t.Fatalf("expected preserved source sheetId 0, got %v", source["sheetId"])
+	}
+
+	pos := chart["position"].(map[string]any)
+	overlay := pos["overlayPosition"].(map[string]any)
+	anchor := overlay["anchorCell"].(map[string]any)
+	if anchor["sheetId"] != float64(0) {
+		t.Fatalf("expected anchor sheetId 0, got %v", anchor["sheetId"])
+	}
+}
+
 func TestSheetsChartUpdate_JSON(t *testing.T) {
 	recorder := &chartRecorder{}
 	ctx, flags, cleanup := newChartTestContext(t, recorder)
@@ -152,13 +217,37 @@ func TestSheetsChartUpdate_JSON(t *testing.T) {
 		t.Errorf("expected chartId 100 in request, got %v", updateSpec["chartId"])
 	}
 	spec := updateSpec["spec"].(map[string]any)
-	basicChart := spec["basicChart"].(map[string]any)
-	domains := basicChart["domains"].([]any)
-	domain := domains[0].(map[string]any)["domain"].(map[string]any)
-	sourceRange := domain["sourceRange"].(map[string]any)
-	source := sourceRange["sources"].([]any)[0].(map[string]any)
+	source := basicChartDomainSource(t, spec)
 	if source["sheetId"] != float64(123) {
 		t.Errorf("expected remapped sheetId 123, got %v", source["sheetId"])
+	}
+}
+
+func TestSheetsChartUpdate_PreservesSheetIDZeroWhenSpreadsheetHasZero(t *testing.T) {
+	recorder := &chartRecorder{}
+	ctx, flags, cleanup := newChartTestContext(t, recorder)
+	defer cleanup()
+
+	ctx = outfmt.WithMode(ctx, outfmt.Mode{JSON: true})
+
+	specJSON := `{"title":"Updated Title","basicChart":{"chartType":"COLUMN","domains":[{"domain":{"sourceRange":{"sources":[{"sheetId":0,"startRowIndex":1,"endRowIndex":4}]}}}],"series":[{"series":{"sourceRange":{"sources":[{"sheetId":0,"startRowIndex":1,"endRowIndex":4}]}}}]}}`
+
+	captureStdout(t, func() {
+		if err := runKong(t, &SheetsChartUpdateCmd{}, []string{
+			"zero", "100", "--spec-json", specJSON,
+		}, ctx, flags); err != nil {
+			t.Fatalf("chart update: %v", err)
+		}
+	})
+
+	updateSpec, ok := recorder.requests[0]["updateChartSpec"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected updateChartSpec request, got %v", recorder.requests[0])
+	}
+	spec := updateSpec["spec"].(map[string]any)
+	source := basicChartDomainSource(t, spec)
+	if source["sheetId"] != float64(0) {
+		t.Fatalf("expected preserved sheetId 0, got %v", source["sheetId"])
 	}
 }
 
@@ -186,6 +275,36 @@ func TestSheetsChartUpdate_AcceptsEmbeddedChartJSON(t *testing.T) {
 	if spec["title"] != "Updated Title" {
 		t.Errorf("expected updated title, got %v", spec["title"])
 	}
+}
+
+func basicChartDomainSource(t *testing.T, spec map[string]any) map[string]any {
+	t.Helper()
+
+	basicChart, ok := spec["basicChart"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected basicChart, got %v", spec)
+	}
+	domains, ok := basicChart["domains"].([]any)
+	if !ok || len(domains) == 0 {
+		t.Fatalf("expected domains, got %v", basicChart["domains"])
+	}
+	domain, ok := domains[0].(map[string]any)["domain"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected domain, got %v", domains[0])
+	}
+	sourceRange, ok := domain["sourceRange"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected sourceRange, got %v", domain)
+	}
+	sources, ok := sourceRange["sources"].([]any)
+	if !ok || len(sources) == 0 {
+		t.Fatalf("expected sources, got %v", sourceRange["sources"])
+	}
+	source, ok := sources[0].(map[string]any)
+	if !ok {
+		t.Fatalf("expected source map, got %v", sources[0])
+	}
+	return source
 }
 
 func TestSheetsChartDelete_JSON(t *testing.T) {

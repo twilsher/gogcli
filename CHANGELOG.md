@@ -23,6 +23,7 @@
 - Gmail: add `--gmail-no-send`, `GOG_GMAIL_NO_SEND`, `gmail_no_send`, and per-account `config no-send` guards for blocking send operations. (#454) — thanks @veteranbv.
 
 ### Fixed
+- Sheets: preserve valid chart ranges that target sheet ID 0 while still remapping sample-style zero IDs when the spreadsheet has no zero-ID sheet. (#434) — thanks @andybergon.
 - Gmail: avoid declaring non-ASCII HTML send bodies as `7bit` MIME content. (#477) — thanks @yeager.
 - CLI: generate native zsh completions without relying on `bashcompinit`. (#481) — thanks @piiq.
 - Windows: expand `~\...` paths and run the integration live-test wrapper through PowerShell. (#452) — thanks @gagradebnath.

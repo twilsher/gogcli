@@ -232,14 +232,20 @@ func (c *SheetsChartCreateCmd) Run(ctx context.Context, flags *RootFlags) error 
 		return err
 	}
 
-	// Resolve sheet name → ID for the anchor position.
-	if c.Sheet != "" || c.Anchor != "" {
-		sheetID, posErr := resolveChartSheetID(ctx, svc, spreadsheetID, c.Sheet)
+	needsSheetResolution := c.Sheet != "" || c.Anchor != "" || chartSpecHasZeroSheetIDs(chart.Spec)
+	var sheet chartSheetResolution
+	if needsSheetResolution {
+		var posErr error
+		sheet, posErr = resolveChartSheetResolution(svc, spreadsheetID, c.Sheet)
 		if posErr != nil {
 			return posErr
 		}
-		remapZeroSheetIDsInChartSpec(chart.Spec, sheetID)
-		pos, posErr := buildChartPosition(sheetID, c.Anchor, c.Width, c.Height)
+		normalizeZeroSheetIDsInChartSpec(chart.Spec, sheet.SheetID, sheet.HasSheetIDZero)
+	}
+
+	// Resolve sheet name → ID for the anchor position.
+	if c.Sheet != "" || c.Anchor != "" {
+		pos, posErr := buildChartPosition(sheet.SheetID, c.Anchor, c.Width, c.Height)
 		if posErr != nil {
 			return posErr
 		}
@@ -322,11 +328,11 @@ func (c *SheetsChartUpdateCmd) Run(ctx context.Context, flags *RootFlags) error 
 		return err
 	}
 
-	sheetID, err := findChartSheetID(svc, spreadsheetID, c.ChartID)
+	sheet, err := findChartSheetResolution(svc, spreadsheetID, c.ChartID)
 	if err != nil {
 		return err
 	}
-	remapZeroSheetIDsInChartSpec(spec, sheetID)
+	normalizeZeroSheetIDsInChartSpec(spec, sheet.SheetID, sheet.HasSheetIDZero)
 
 	req := &sheets.BatchUpdateSpreadsheetRequest{
 		Requests: []*sheets.Request{

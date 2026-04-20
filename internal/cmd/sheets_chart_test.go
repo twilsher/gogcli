@@ -79,8 +79,36 @@ func chartHandler(recorder *chartRecorder) http.Handler {
 			return
 		}
 
+		if strings.HasPrefix(path, "/spreadsheets/zero") && r.Method == http.MethodGet && !strings.Contains(path, "batchUpdate") {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"spreadsheetId": "zero",
+				"sheets": []map[string]any{
+					{
+						"properties": map[string]any{
+							"sheetId": 0,
+							"title":   "Sheet1",
+						},
+						"charts": []map[string]any{
+							{
+								"chartId": 100,
+								"spec": map[string]any{
+									"title": "Revenue",
+									"basicChart": map[string]any{
+										"chartType": "COLUMN",
+									},
+								},
+							},
+						},
+					},
+				},
+			})
+			return
+		}
+
 		// BatchUpdate POST.
-		if strings.HasPrefix(path, "/spreadsheets/s1:batchUpdate") && r.Method == http.MethodPost {
+		if (strings.HasPrefix(path, "/spreadsheets/s1:batchUpdate") ||
+			strings.HasPrefix(path, "/spreadsheets/zero:batchUpdate")) && r.Method == http.MethodPost {
 			var body map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
