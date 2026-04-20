@@ -6,6 +6,7 @@
 - Gmail: add `gmail autoreply` to reply once to matching messages, label the thread for dedupe, and optionally archive/mark read. Includes docs and regression coverage for skip/reply flows.
 
 ### Fixed
+- Docs: restore `docs write --replace --markdown` by uploading Markdown through Drive so Google Docs converts formatting. (#501) — thanks @twilsher.
 - Calendar: avoid ambiguous timezone guessing from offset-only event times, preserve timezones for focus-time events, and use exclusive next-midnight bounds for full-day ranges. (#492, #509, #510) — thanks @RaphaelRUzan and @dinakars777.
 - Gmail: avoid re-decoding Gmail-normalized UTF-8 bodies through stale MIME charset headers while preserving ISO-2022-JP decoding. (#511) — thanks @dinakars777.
 - Tasks: clear task due dates when `tasks update --due=` is provided. (#507) — thanks @dinakars777.
