@@ -192,7 +192,7 @@ Flag aliases:
 - `gog drive delete <fileId> [--permanent]`
 - `gog drive move <fileId> --parent ID`
 - `gog drive rename <fileId> <newName>`
-- `gog drive share <fileId> --to anyone|user|domain [--email addr] [--domain example.com] [--role reader|writer] [--discoverable]`
+- `gog drive share <fileId> --to anyone|user|domain [--email addr] [--domain example.com] [--role reader|writer|commenter] [--discoverable]`
 - `gog drive permissions <fileId> [--max N] [--page TOKEN]`
 - `gog drive unshare <fileId> <permissionId>`
 - `gog drive url <fileIds...>`
@@ -269,7 +269,8 @@ Flag aliases:
 - `gog classroom guardian-invitations create <studentId> --email EMAIL`
 - `gog classroom profile [userId]`
 - `gog gmail search <query> [--max N] [--page TOKEN]`
-- `gog gmail messages search <query> [--max N] [--page TOKEN] [--include-body]`
+- `gog gmail messages search <query> [--max N] [--page TOKEN] [--include-body] [--full]`
+- `gog gmail autoreply <query> [--max N] [--subject S] [--body B|--body-file PATH|--body-html HTML] [--from addr] [--reply-to addr] [--label L] [--archive] [--mark-read] [--skip-bulk] [--allow-self]`
 - `gog gmail thread get <threadId> [--download]`
 - `gog gmail thread modify <threadId> [--add ...] [--remove ...]`
 - `gog gmail get <messageId> [--format full|metadata|raw] [--headers ...]`
@@ -290,7 +291,7 @@ Flag aliases:
 - `gog gmail watch start|status|renew|stop|serve`
 - `gog gmail history --since <historyId>`
 - `gog chat spaces list [--max N] [--page TOKEN]`
-- `gog chat spaces find <displayName> [--max N]`
+- `gog chat spaces find <displayName> [--max N] [--exact]`
 - `gog chat spaces create <displayName> [--member email,...]`
 - `gog chat messages list <space> [--max N] [--page TOKEN] [--order ORDER] [--thread THREAD] [--unread]`
 - `gog chat messages send <space> --text TEXT [--thread THREAD]`

@@ -7,7 +7,7 @@ Fast, script-friendly CLI for Gmail, Calendar, Chat, Classroom, Drive, Docs, Sli
 
 ## Features
 
-- **Gmail** - search threads/messages, send mail, view attachments, manage labels/drafts/filters/delegation/vacation settings, modify single messages, export filters, inspect history, and run Pub/Sub watch webhooks
+- **Gmail** - search threads/messages, send mail, view attachments, manage labels/drafts/filters/delegation/vacation settings, auto-reply once to matching mail, modify single messages, export filters, inspect history, and run Pub/Sub watch webhooks
 - **Email tracking** - track opens for `gog gmail send --track` with a small Cloudflare Worker backend
 - **Calendar** - list/create/update/delete events, manage invitations, aliases, subscriptions, team calendars, free/busy/conflicts, propose new times, focus/OOO/working-location events, recurrence, and reminders
 - **Classroom** - manage courses, roster, coursework/materials, submissions, announcements, topics, invitations, guardians, profiles
@@ -512,9 +512,9 @@ Example (JSON5 supports comments and trailing commas):
 gog config path
 gog config list
 gog config keys
-gog config get default_timezone
-gog config set default_timezone UTC
-gog config unset default_timezone
+gog config get timezone
+gog config set timezone UTC
+gog config unset timezone
 ```
 
 ### Account Aliases
@@ -663,6 +663,7 @@ gog gmail drafts create --to a@b.com --subject "Draft" --body "Body"
 gog gmail drafts update <draftId> --subject "Draft" --body "Body"
 gog gmail drafts update <draftId> --to a@b.com --subject "Draft" --body "Body"
 gog gmail drafts send <draftId>
+gog gmail autoreply 'from:alerts@example.com newer_than:7d' --body-file ./reply.txt --label AutoReplied --dry-run
 
 # Labels
 gog gmail labels list
@@ -928,6 +929,7 @@ gog drive delete <fileId> --permanent # Permanently delete
 gog drive permissions <fileId>
 gog drive share <fileId> --to user --email user@example.com --role reader
 gog drive share <fileId> --to user --email user@example.com --role writer
+gog drive share <fileId> --to user --email reviewer@example.com --role commenter
 gog drive share <fileId> --to domain --domain example.com --role reader
 gog drive unshare <fileId> --permission-id <permissionId>
 
@@ -955,6 +957,7 @@ gog docs update <docId> --file ./insert.txt --index 25 --pageless
 gog docs write <docId> --text "Fresh content"
 gog docs write <docId> --text "Rewrite one tab" --tab-id t.notes
 gog docs write <docId> --file ./body.txt --append --pageless
+gog docs write <docId> --file ./body.md --replace --markdown
 gog docs find-replace <docId> "old" "new"
 gog docs find-replace <docId> "old" "new" --tab-id t.notes
 
@@ -1179,6 +1182,7 @@ gog people relations people/<userId> --type manager
 # Spaces
 gog chat spaces list
 gog chat spaces find "Engineering"
+gog chat spaces find "Engineering" --exact
 gog chat spaces create "Engineering" --member alice@company.com --member bob@company.com
 
 # Messages
@@ -1378,7 +1382,7 @@ THREAD_ID           SUBJECT                           FROM                  DATE
 16d1c2b3a4e5f6d7    Project update                    bob@example.com       2025-01-08
 ```
 
-Message-level search (one row per email; add `--include-body` to fetch/decode bodies):
+Message-level search (one row per email; add `--include-body` to fetch/decode bodies, or `--full` for untruncated text bodies):
 
 ```bash
 $ gog gmail messages search 'newer_than:7d' --max 3
@@ -1423,7 +1427,7 @@ $ gog gmail messages search 'newer_than:7d' --max 3 --json
 ```
 
 ```bash
-$ gog gmail messages search 'newer_than:7d' --max 1 --include-body --json
+$ gog gmail messages search 'newer_than:7d' --max 1 --full --json
 {
   "messages": [
     {

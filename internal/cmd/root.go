@@ -29,7 +29,7 @@ const (
 
 type RootFlags struct {
 	Color           string `help:"Color output: auto|always|never" default:"${color}"`
-	Account         string `help:"Account email for API commands (gmail/calendar/chat/classroom/drive/docs/slides/contacts/tasks/people/sheets/forms/appscript)" aliases:"acct" short:"a"`
+	Account         string `help:"Account email for API commands (gmail/calendar/chat/classroom/drive/docs/slides/contacts/tasks/people/sheets/forms/appscript/ads)" aliases:"acct" short:"a"`
 	Client          string `help:"OAuth client name (selects stored credentials + token bucket)" default:"${client}"`
 	AccessToken     string `help:"Use provided access token directly (bypasses stored refresh tokens; token expires in ~1h)" env:"GOG_ACCESS_TOKEN"`
 	EnableCommands  string `help:"Comma-separated list of enabled commands; dot paths allowed (restricts CLI)" default:"${enabled_commands}"`
@@ -346,7 +346,7 @@ func newParser(description string) (*kong.Kong, *CLI, error) {
 }
 
 func baseDescription() string {
-	return "Google CLI for Gmail/Calendar/Chat/Classroom/Drive/Contacts/Tasks/Sheets/Docs/Slides/People/Forms/App Script"
+	return "Google CLI for Gmail/Calendar/Chat/Classroom/Drive/Contacts/Tasks/Sheets/Docs/Slides/People/Forms/App Script/Ads/Groups/Admin/Keep"
 }
 
 func helpDescription() string {
