@@ -144,11 +144,14 @@ Environment:
 - `GOG_KEYRING_BACKEND={auto|keychain|file}` (force backend; use `file` to avoid Keychain prompts and pair with `GOG_KEYRING_PASSWORD` for non-interactive)
 - `GOG_KEYRING_SERVICE_NAME=...` (override keyring namespace/service name; default `gogcli`)
 - `GOG_TIMEZONE=America/New_York` (default output timezone; IANA name or `UTC`; `local` forces local timezone)
-- `GOG_ENABLE_COMMANDS=calendar,tasks` (optional allowlist of top-level commands)
+- `GOG_ENABLE_COMMANDS=calendar,tasks,gmail.search` (optional allowlist; dot paths allowed)
+- `GOG_DISABLE_COMMANDS=gmail.send,gmail.drafts.send` (optional denylist; dot paths allowed)
+- `GOG_GMAIL_NO_SEND=1` (block Gmail send operations)
 - `config.json` can also set `keyring_backend` (JSON5; env vars take precedence)
 - `config.json` can also set `default_timezone` (IANA name or `UTC`)
 - `config.json` can also set `account_aliases` for `gog auth alias` (JSON5)
 - `config.json` can also set `account_clients` (email -> client) and `client_domains` (domain -> client)
+- `config.json` can also set `gmail_no_send` and `no_send_accounts` for send guards
 
 Flag aliases:
 - `--out` also accepts `--output`.

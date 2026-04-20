@@ -11,9 +11,13 @@
 - Secrets: allow `GOG_KEYRING_SERVICE_NAME` to override the keyring namespace. (#463) — thanks @mkurz.
 - Sheets: add `add-sheet`, `rename-sheet`, and `delete-sheet` tab aliases plus `sheets add-tab --index`. (#442) — thanks @alexknowshtml.
 - Chat: make `chat spaces find` use case-insensitive substring matching by default, with `--exact` for legacy exact lookup. (#506) — thanks @mvanhorn.
+- Agent safety: allow dotted command paths in `--enable-commands` and add `--disable-commands` / `GOG_DISABLE_COMMANDS` denylist support. (#218, #173) — thanks @EricYangTL and @spookyuser.
+- Gmail: add `--gmail-no-send`, `GOG_GMAIL_NO_SEND`, `gmail_no_send`, and per-account `config no-send` guards for blocking send operations. (#454) — thanks @veteranbv.
 
 ### Fixed
 - Gmail: avoid declaring non-ASCII HTML send bodies as `7bit` MIME content. (#477) — thanks @yeager.
+- CLI: generate native zsh completions without relying on `bashcompinit`. (#481) — thanks @piiq.
+- Windows: expand `~\...` paths and run the integration live-test wrapper through PowerShell. (#452) — thanks @gagradebnath.
 - Tracking: prefer file-stored tracking secrets over stale keyring values unless keyring storage is configured. (#469) — thanks @alexuser.
 - Docs: restore `docs write --replace --markdown` by uploading Markdown through Drive so Google Docs converts formatting. (#501) — thanks @twilsher.
 - Calendar: avoid ambiguous timezone guessing from offset-only event times, preserve timezones for focus-time events, and use exclusive next-midnight bounds for full-day ranges. (#492, #509, #510) — thanks @RaphaelRUzan and @dinakars777.

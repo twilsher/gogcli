@@ -462,7 +462,9 @@ gog keep delete <noteId> --account you@yourdomain.com --force
 - `GOG_PLAIN` - Default plain output
 - `GOG_COLOR` - Color mode: `auto` (default), `always`, or `never`
 - `GOG_TIMEZONE` - Default output timezone for Calendar/Gmail (IANA name, `UTC`, or `local`)
-- `GOG_ENABLE_COMMANDS` - Comma-separated allowlist of top-level commands (e.g., `calendar,tasks`)
+- `GOG_ENABLE_COMMANDS` - Comma-separated allowlist of commands; dot paths allowed (e.g., `calendar,tasks,gmail.search`)
+- `GOG_DISABLE_COMMANDS` - Comma-separated denylist of commands; dot paths allowed (e.g., `gmail.send,gmail.drafts.send`)
+- `GOG_GMAIL_NO_SEND` - Block Gmail send operations
 - `GOG_KEYRING_SERVICE_NAME` - Override the keyring namespace/service name (default: `gogcli`)
 
 ### Config File (JSON5)
@@ -496,6 +498,11 @@ Example (JSON5 supports comments and trailing commas):
   client_domains: {
     "example.com": "work",
   },
+  // Optional safety guard: block Gmail send operations
+  gmail_no_send: true,
+  no_send_accounts: {
+    "agent@example.com": true,
+  },
 }
 ```
 
@@ -520,15 +527,23 @@ gog auth alias unset work
 
 Aliases work anywhere you pass `--account` or `GOG_ACCOUNT` (reserved: `auto`, `default`).
 
-### Command Allowlist (Sandboxing)
+### Command Guards (Sandboxing)
 
 ```bash
 # Only allow calendar + tasks commands for an agent
 gog --enable-commands calendar,tasks calendar events --today
 
+# Allow one Gmail read path, but block Gmail writes
+gog --enable-commands gmail.search --disable-commands gmail.send gmail search from:me
+
 # Same via env
 export GOG_ENABLE_COMMANDS=calendar,tasks
+export GOG_DISABLE_COMMANDS=gmail.send,gmail.drafts.send
 gog tasks list <tasklistId>
+
+# Extra Gmail send guard
+gog --gmail-no-send gmail send --to someone@example.com --subject Test --body Test
+gog config no-send set agent@example.com
 ```
  
 ## Security
@@ -1553,7 +1568,9 @@ gog --verbose gmail search 'newer_than:7d'
 All commands support these flags:
 
 - `--account <email|alias|auto>` - Account to use (overrides GOG_ACCOUNT)
-- `--enable-commands <csv>` - Allowlist top-level commands (e.g., `calendar,tasks`)
+- `--enable-commands <csv>` - Allowlist commands; dot paths allowed (e.g., `calendar,tasks,gmail.search`)
+- `--disable-commands <csv>` - Denylist commands; dot paths allowed (e.g., `gmail.send,gmail.drafts.send`)
+- `--gmail-no-send` - Block Gmail send operations
 - `--json` - Output JSON to stdout (best for scripting)
 - `--plain` - Output stable, parseable text to stdout (TSV; no colors)
 - `--color <mode>` - Color mode: `auto`, `always`, or `never` (default: auto)
