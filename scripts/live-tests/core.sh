@@ -45,5 +45,11 @@ run_core_tests() {
     else
       echo "gmail-no-send block OK"
     fi
+    if $BIN --gmail-no-send gmail fwd msg-1 --to nobody@example.com >/dev/null 2>&1; then
+      echo "Expected gmail-no-send to block forward alias, but it succeeded" >&2
+      exit 1
+    else
+      echo "gmail-no-send forward alias block OK"
+    fi
   fi
 }
