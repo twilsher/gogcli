@@ -18,7 +18,14 @@ import (
 	"google.golang.org/api/option"
 )
 
-func TestDriveCommands_MoreCoverage(t *testing.T) {
+type fakeDriveCommands struct {
+	run         func(args ...string) string
+	uploadMetas func() []map[string]any
+}
+
+func newFakeDriveCommands(t *testing.T) *fakeDriveCommands {
+	t.Helper()
+
 	origNew := newDriveService
 	t.Cleanup(func() { newDriveService = origNew })
 
@@ -205,7 +212,7 @@ func TestDriveCommands_MoreCoverage(t *testing.T) {
 			return
 		}
 	}))
-	defer srv.Close()
+	t.Cleanup(srv.Close)
 
 	svc, err := drive.NewService(context.Background(),
 		option.WithoutAuthentication(),
@@ -228,6 +235,16 @@ func TestDriveCommands_MoreCoverage(t *testing.T) {
 		})
 	}
 
+	return &fakeDriveCommands{
+		run:         run,
+		uploadMetas: func() []map[string]any { return uploadMetas },
+	}
+}
+
+func TestDriveCommands_ListSearchGetCopy(t *testing.T) {
+	fake := newFakeDriveCommands(t)
+	run := fake.run
+
 	_ = run("--account", "a@b.com", "drive", "ls", "--query", "empty")
 	out := run("--json", "--account", "a@b.com", "drive", "ls")
 	if !strings.Contains(out, "\"files\"") {
@@ -249,16 +266,21 @@ func TestDriveCommands_MoreCoverage(t *testing.T) {
 	if !strings.Contains(out, "\"file\"") {
 		t.Fatalf("unexpected copy json: %q", out)
 	}
+}
+
+func TestDriveCommands_UploadVariants(t *testing.T) {
+	fake := newFakeDriveCommands(t)
+	run := fake.run
 
 	tmp := filepath.Join(t.TempDir(), "upload.txt")
 	if err := os.WriteFile(tmp, []byte("data"), 0o600); err != nil {
 		t.Fatalf("write temp: %v", err)
 	}
-	out = run("--json", "--account", "a@b.com", "drive", "upload", tmp)
+	out := run("--json", "--account", "a@b.com", "drive", "upload", tmp)
 	if !strings.Contains(out, "\"file\"") {
 		t.Fatalf("unexpected upload json: %q", out)
 	}
-	baseMeta := latestUploadMeta(t, uploadMetas)
+	baseMeta := latestUploadMeta(t, fake.uploadMetas())
 	if got := toString(baseMeta["name"]); got != "upload.txt" {
 		t.Fatalf("upload name = %q, want upload.txt", got)
 	}
@@ -274,7 +296,7 @@ func TestDriveCommands_MoreCoverage(t *testing.T) {
 	if !strings.Contains(out, "\"file\"") {
 		t.Fatalf("unexpected upload --convert json: %q", out)
 	}
-	convertMeta := latestUploadMeta(t, uploadMetas)
+	convertMeta := latestUploadMeta(t, fake.uploadMetas())
 	if got := toString(convertMeta["mimeType"]); got != driveMimeGoogleDoc {
 		t.Fatalf("upload --convert mimeType = %q, want %q", got, driveMimeGoogleDoc)
 	}
@@ -286,7 +308,7 @@ func TestDriveCommands_MoreCoverage(t *testing.T) {
 	if !strings.Contains(out, "\"file\"") {
 		t.Fatalf("unexpected upload --convert --name json: %q", out)
 	}
-	nameMeta := latestUploadMeta(t, uploadMetas)
+	nameMeta := latestUploadMeta(t, fake.uploadMetas())
 	if got := toString(nameMeta["name"]); got != "custom.docx" {
 		t.Fatalf("upload --convert --name kept name = %q, want custom.docx", got)
 	}
@@ -299,15 +321,20 @@ func TestDriveCommands_MoreCoverage(t *testing.T) {
 	if !strings.Contains(out, "\"file\"") {
 		t.Fatalf("unexpected upload --convert-to json: %q", out)
 	}
-	explicitMeta := latestUploadMeta(t, uploadMetas)
+	explicitMeta := latestUploadMeta(t, fake.uploadMetas())
 	if got := toString(explicitMeta["mimeType"]); got != driveMimeGoogleSheet {
 		t.Fatalf("upload --convert-to mimeType = %q, want %q", got, driveMimeGoogleSheet)
 	}
 	if got := toString(explicitMeta["name"]); got != "chart.png" {
 		t.Fatalf("upload --convert-to name = %q, want chart.png", got)
 	}
+}
 
-	out = run("--account", "a@b.com", "drive", "mkdir", "Folder")
+func TestDriveCommands_MutateShareAndPermissions(t *testing.T) {
+	fake := newFakeDriveCommands(t)
+	run := fake.run
+
+	out := run("--account", "a@b.com", "drive", "mkdir", "Folder")
 	if !strings.Contains(out, "id") {
 		t.Fatalf("unexpected mkdir output: %q", out)
 	}

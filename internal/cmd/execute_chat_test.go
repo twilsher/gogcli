@@ -16,6 +16,26 @@ import (
 
 var errUnexpectedChatServiceCall = errors.New("unexpected chat service call")
 
+func useFakeChatService(t *testing.T, handler http.HandlerFunc) {
+	t.Helper()
+
+	origNew := newChatService
+	t.Cleanup(func() { newChatService = origNew })
+
+	srv := httptest.NewServer(handler)
+	t.Cleanup(srv.Close)
+
+	svc, err := chat.NewService(context.Background(),
+		option.WithoutAuthentication(),
+		option.WithHTTPClient(srv.Client()),
+		option.WithEndpoint(srv.URL+"/"),
+	)
+	if err != nil {
+		t.Fatalf("NewService: %v", err)
+	}
+	newChatService = func(context.Context, string) (*chat.Service, error) { return svc, nil }
+}
+
 func TestChatSpaceDisplayNameMatches(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -41,10 +61,7 @@ func TestChatSpaceDisplayNameMatches(t *testing.T) {
 }
 
 func TestExecute_ChatSpacesList_Text(t *testing.T) {
-	origNew := newChatService
-	t.Cleanup(func() { newChatService = origNew })
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	useFakeChatService(t, func(w http.ResponseWriter, r *http.Request) {
 		if !(r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/spaces")) {
 			http.NotFound(w, r)
 			return
@@ -57,18 +74,7 @@ func TestExecute_ChatSpacesList_Text(t *testing.T) {
 			},
 			"nextPageToken": "npt",
 		})
-	}))
-	defer srv.Close()
-
-	svc, err := chat.NewService(context.Background(),
-		option.WithoutAuthentication(),
-		option.WithHTTPClient(srv.Client()),
-		option.WithEndpoint(srv.URL+"/"),
-	)
-	if err != nil {
-		t.Fatalf("NewService: %v", err)
-	}
-	newChatService = func(context.Context, string) (*chat.Service, error) { return svc, nil }
+	})
 
 	out := captureStdout(t, func() {
 		errOut := captureStderr(t, func() {
@@ -103,10 +109,7 @@ func TestExecute_ChatSpacesList_ConsumerBlocked(t *testing.T) {
 }
 
 func TestExecute_ChatSpacesFind_JSON(t *testing.T) {
-	origNew := newChatService
-	t.Cleanup(func() { newChatService = origNew })
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	useFakeChatService(t, func(w http.ResponseWriter, r *http.Request) {
 		if !(r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/spaces")) {
 			http.NotFound(w, r)
 			return
@@ -127,18 +130,7 @@ func TestExecute_ChatSpacesFind_JSON(t *testing.T) {
 				{"name": "spaces/bbb", "displayName": "Other", "spaceType": "SPACE"},
 			},
 		})
-	}))
-	defer srv.Close()
-
-	svc, err := chat.NewService(context.Background(),
-		option.WithoutAuthentication(),
-		option.WithHTTPClient(srv.Client()),
-		option.WithEndpoint(srv.URL+"/"),
-	)
-	if err != nil {
-		t.Fatalf("NewService: %v", err)
-	}
-	newChatService = func(context.Context, string) (*chat.Service, error) { return svc, nil }
+	})
 
 	out := captureStdout(t, func() {
 		_ = captureStderr(t, func() {
@@ -163,10 +155,7 @@ func TestExecute_ChatSpacesFind_JSON(t *testing.T) {
 }
 
 func TestExecute_ChatSpacesFind_Substring(t *testing.T) {
-	origNew := newChatService
-	t.Cleanup(func() { newChatService = origNew })
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	useFakeChatService(t, func(w http.ResponseWriter, r *http.Request) {
 		if !(r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/spaces")) {
 			http.NotFound(w, r)
 			return
@@ -180,18 +169,7 @@ func TestExecute_ChatSpacesFind_Substring(t *testing.T) {
 				{"name": "spaces/ddd", "displayName": "Old Project Archive", "spaceType": "SPACE"},
 			},
 		})
-	}))
-	defer srv.Close()
-
-	svc, err := chat.NewService(context.Background(),
-		option.WithoutAuthentication(),
-		option.WithHTTPClient(srv.Client()),
-		option.WithEndpoint(srv.URL+"/"),
-	)
-	if err != nil {
-		t.Fatalf("NewService: %v", err)
-	}
-	newChatService = func(context.Context, string) (*chat.Service, error) { return svc, nil }
+	})
 
 	// Default behavior: substring, case-insensitive. "project" must match all
 	// three entries whose DisplayName contains "Project", and must exclude the
@@ -226,10 +204,7 @@ func TestExecute_ChatSpacesFind_Substring(t *testing.T) {
 }
 
 func TestExecute_ChatSpacesFind_Exact(t *testing.T) {
-	origNew := newChatService
-	t.Cleanup(func() { newChatService = origNew })
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	useFakeChatService(t, func(w http.ResponseWriter, r *http.Request) {
 		if !(r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/spaces")) {
 			http.NotFound(w, r)
 			return
@@ -241,18 +216,7 @@ func TestExecute_ChatSpacesFind_Exact(t *testing.T) {
 				{"name": "spaces/bbb", "displayName": "Project Alpha", "spaceType": "SPACE"},
 			},
 		})
-	}))
-	defer srv.Close()
-
-	svc, err := chat.NewService(context.Background(),
-		option.WithoutAuthentication(),
-		option.WithHTTPClient(srv.Client()),
-		option.WithEndpoint(srv.URL+"/"),
-	)
-	if err != nil {
-		t.Fatalf("NewService: %v", err)
-	}
-	newChatService = func(context.Context, string) (*chat.Service, error) { return svc, nil }
+	})
 
 	// --exact must restore the legacy case-insensitive equality behavior: only
 	// the space whose DisplayName equals "project alpha" (ignoring case)
@@ -279,14 +243,11 @@ func TestExecute_ChatSpacesFind_Exact(t *testing.T) {
 }
 
 func TestExecute_ChatSpacesCreate_JSON(t *testing.T) {
-	origNew := newChatService
-	t.Cleanup(func() { newChatService = origNew })
-
 	var mu sync.Mutex
 	var gotType string
 	var gotMembers int
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	useFakeChatService(t, func(w http.ResponseWriter, r *http.Request) {
 		if !(r.Method == http.MethodPost && strings.Contains(r.URL.Path, "/spaces:setup")) {
 			http.NotFound(w, r)
 			return
@@ -306,18 +267,7 @@ func TestExecute_ChatSpacesCreate_JSON(t *testing.T) {
 			"displayName": "Engineering",
 			"spaceType":   "SPACE",
 		})
-	}))
-	defer srv.Close()
-
-	svc, err := chat.NewService(context.Background(),
-		option.WithoutAuthentication(),
-		option.WithHTTPClient(srv.Client()),
-		option.WithEndpoint(srv.URL+"/"),
-	)
-	if err != nil {
-		t.Fatalf("NewService: %v", err)
-	}
-	newChatService = func(context.Context, string) (*chat.Service, error) { return svc, nil }
+	})
 
 	out := captureStdout(t, func() {
 		_ = captureStderr(t, func() {
@@ -347,12 +297,9 @@ func TestExecute_ChatSpacesCreate_JSON(t *testing.T) {
 }
 
 func TestExecute_ChatMessagesList_Text_Unread(t *testing.T) {
-	origNew := newChatService
-	t.Cleanup(func() { newChatService = origNew })
-
 	var gotFilter string
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	useFakeChatService(t, func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case strings.Contains(r.URL.Path, "/spaceReadState") && r.Method == http.MethodGet:
 			w.Header().Set("Content-Type", "application/json")
@@ -377,18 +324,7 @@ func TestExecute_ChatMessagesList_Text_Unread(t *testing.T) {
 		default:
 			http.NotFound(w, r)
 		}
-	}))
-	defer srv.Close()
-
-	svc, err := chat.NewService(context.Background(),
-		option.WithoutAuthentication(),
-		option.WithHTTPClient(srv.Client()),
-		option.WithEndpoint(srv.URL+"/"),
-	)
-	if err != nil {
-		t.Fatalf("NewService: %v", err)
-	}
-	newChatService = func(context.Context, string) (*chat.Service, error) { return svc, nil }
+	})
 
 	out := captureStdout(t, func() {
 		errOut := captureStderr(t, func() {
@@ -412,13 +348,10 @@ func TestExecute_ChatMessagesList_Text_Unread(t *testing.T) {
 }
 
 func TestExecute_ChatMessagesSend_JSON(t *testing.T) {
-	origNew := newChatService
-	t.Cleanup(func() { newChatService = origNew })
-
 	var gotText string
 	var gotThread string
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	useFakeChatService(t, func(w http.ResponseWriter, r *http.Request) {
 		if !(r.Method == http.MethodPost && strings.Contains(r.URL.Path, "/messages")) {
 			http.NotFound(w, r)
 			return
@@ -434,18 +367,7 @@ func TestExecute_ChatMessagesSend_JSON(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"name": "spaces/aaa/messages/msg2",
 		})
-	}))
-	defer srv.Close()
-
-	svc, err := chat.NewService(context.Background(),
-		option.WithoutAuthentication(),
-		option.WithHTTPClient(srv.Client()),
-		option.WithEndpoint(srv.URL+"/"),
-	)
-	if err != nil {
-		t.Fatalf("NewService: %v", err)
-	}
-	newChatService = func(context.Context, string) (*chat.Service, error) { return svc, nil }
+	})
 
 	out := captureStdout(t, func() {
 		_ = captureStderr(t, func() {
@@ -466,10 +388,7 @@ func TestExecute_ChatMessagesSend_JSON(t *testing.T) {
 }
 
 func TestExecute_ChatThreadsList_Text(t *testing.T) {
-	origNew := newChatService
-	t.Cleanup(func() { newChatService = origNew })
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	useFakeChatService(t, func(w http.ResponseWriter, r *http.Request) {
 		if !(r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/messages")) {
 			http.NotFound(w, r)
 			return
@@ -482,18 +401,7 @@ func TestExecute_ChatThreadsList_Text(t *testing.T) {
 				{"name": "spaces/aaa/messages/m3", "thread": map[string]any{"name": "spaces/aaa/threads/t2"}, "text": "t2"},
 			},
 		})
-	}))
-	defer srv.Close()
-
-	svc, err := chat.NewService(context.Background(),
-		option.WithoutAuthentication(),
-		option.WithHTTPClient(srv.Client()),
-		option.WithEndpoint(srv.URL+"/"),
-	)
-	if err != nil {
-		t.Fatalf("NewService: %v", err)
-	}
-	newChatService = func(context.Context, string) (*chat.Service, error) { return svc, nil }
+	})
 
 	out := captureStdout(t, func() {
 		_ = captureStderr(t, func() {
@@ -508,12 +416,9 @@ func TestExecute_ChatThreadsList_Text(t *testing.T) {
 }
 
 func TestExecute_ChatDMSpace_JSON(t *testing.T) {
-	origNew := newChatService
-	t.Cleanup(func() { newChatService = origNew })
-
 	var gotMember string
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	useFakeChatService(t, func(w http.ResponseWriter, r *http.Request) {
 		if !(r.Method == http.MethodPost && strings.Contains(r.URL.Path, "/spaces:setup")) {
 			http.NotFound(w, r)
 			return
@@ -529,18 +434,7 @@ func TestExecute_ChatDMSpace_JSON(t *testing.T) {
 			"name":      "spaces/dm1",
 			"spaceType": "DIRECT_MESSAGE",
 		})
-	}))
-	defer srv.Close()
-
-	svc, err := chat.NewService(context.Background(),
-		option.WithoutAuthentication(),
-		option.WithHTTPClient(srv.Client()),
-		option.WithEndpoint(srv.URL+"/"),
-	)
-	if err != nil {
-		t.Fatalf("NewService: %v", err)
-	}
-	newChatService = func(context.Context, string) (*chat.Service, error) { return svc, nil }
+	})
 
 	out := captureStdout(t, func() {
 		_ = captureStderr(t, func() {
@@ -558,12 +452,9 @@ func TestExecute_ChatDMSpace_JSON(t *testing.T) {
 }
 
 func TestExecute_ChatDMSend_JSON(t *testing.T) {
-	origNew := newChatService
-	t.Cleanup(func() { newChatService = origNew })
-
 	var gotText string
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	useFakeChatService(t, func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodPost && strings.Contains(r.URL.Path, "/spaces:setup"):
 			w.Header().Set("Content-Type", "application/json")
@@ -581,18 +472,7 @@ func TestExecute_ChatDMSend_JSON(t *testing.T) {
 		default:
 			http.NotFound(w, r)
 		}
-	}))
-	defer srv.Close()
-
-	svc, err := chat.NewService(context.Background(),
-		option.WithoutAuthentication(),
-		option.WithHTTPClient(srv.Client()),
-		option.WithEndpoint(srv.URL+"/"),
-	)
-	if err != nil {
-		t.Fatalf("NewService: %v", err)
-	}
-	newChatService = func(context.Context, string) (*chat.Service, error) { return svc, nil }
+	})
 
 	out := captureStdout(t, func() {
 		_ = captureStderr(t, func() {
