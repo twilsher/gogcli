@@ -6,9 +6,14 @@
 - Gmail: add `gmail autoreply` to reply once to matching messages, label the thread for dedupe, and optionally archive/mark read. Includes docs and regression coverage for skip/reply flows.
 - Gmail: add `gmail messages search --full` to print complete message bodies instead of truncating text output. (#447) — thanks @GodsBoy.
 - Drive: allow `drive share --role commenter` for comment-only sharing. (#443) — thanks @pavelzak.
+- Drive: show owner email in `drive ls` and `drive search` table output. (#458) — thanks @laihenyi.
+- Auth: add `ads` as an auth service for Google Ads API tokens. (#264) — thanks @ufkhan97.
+- Secrets: allow `GOG_KEYRING_SERVICE_NAME` to override the keyring namespace. (#463) — thanks @mkurz.
+- Sheets: add `add-sheet`, `rename-sheet`, and `delete-sheet` tab aliases plus `sheets add-tab --index`. (#442) — thanks @alexknowshtml.
 - Chat: make `chat spaces find` use case-insensitive substring matching by default, with `--exact` for legacy exact lookup. (#506) — thanks @mvanhorn.
 
 ### Fixed
+- Gmail: avoid declaring non-ASCII HTML send bodies as `7bit` MIME content. (#477) — thanks @yeager.
 - Tracking: prefer file-stored tracking secrets over stale keyring values unless keyring storage is configured. (#469) — thanks @alexuser.
 - Docs: restore `docs write --replace --markdown` by uploading Markdown through Drive so Google Docs converts formatting. (#501) — thanks @twilsher.
 - Calendar: avoid ambiguous timezone guessing from offset-only event times, preserve timezones for focus-time events, and use exclusive next-midnight bounds for full-day ranges. (#492, #509, #510) — thanks @RaphaelRUzan and @dinakars777.

@@ -395,8 +395,10 @@ Service scope matrix (auto-generated; run `go run scripts/gen-auth-services-md.g
 | people | yes | People API | `profile` | OIDC profile scope |
 | forms | yes | Forms API | `https://www.googleapis.com/auth/forms.body`<br>`https://www.googleapis.com/auth/forms.responses.readonly` |  |
 | appscript | yes | Apps Script API | `https://www.googleapis.com/auth/script.projects`<br>`https://www.googleapis.com/auth/script.deployments`<br>`https://www.googleapis.com/auth/script.processes` |  |
+| ads | yes | Google Ads API | `https://www.googleapis.com/auth/adwords` | OAuth scope only |
 | groups | no | Cloud Identity API | `https://www.googleapis.com/auth/cloud-identity.groups.readonly` | Workspace only |
 | keep | no | Keep API | `https://www.googleapis.com/auth/keep` | Workspace only; service account (domain-wide delegation) |
+| admin | no | Admin SDK Directory API | `https://www.googleapis.com/auth/admin.directory.user`<br>`https://www.googleapis.com/auth/admin.directory.group`<br>`https://www.googleapis.com/auth/admin.directory.group.member` | Workspace only; service account with domain-wide delegation required |
 <!-- auth-services:end -->
 
 ### Service Accounts (Workspace only)
@@ -461,6 +463,7 @@ gog keep delete <noteId> --account you@yourdomain.com --force
 - `GOG_COLOR` - Color mode: `auto` (default), `always`, or `never`
 - `GOG_TIMEZONE` - Default output timezone for Calendar/Gmail (IANA name, `UTC`, or `local`)
 - `GOG_ENABLE_COMMANDS` - Comma-separated allowlist of top-level commands (e.g., `calendar,tasks`)
+- `GOG_KEYRING_SERVICE_NAME` - Override the keyring namespace/service name (default: `gogcli`)
 
 ### Config File (JSON5)
 
@@ -551,6 +554,7 @@ Options:
 - **Force Keychain:** `GOG_KEYRING_BACKEND=keychain` (disables any file-backend fallback).
 - **Avoid Keychain prompts entirely:** `GOG_KEYRING_BACKEND=file` (stores encrypted entries on disk under your config dir).
   - To avoid password prompts too (CI/non-interactive): set `GOG_KEYRING_PASSWORD=...` (tradeoff: secret in env).
+- **Use a separate keyring namespace:** `GOG_KEYRING_SERVICE_NAME=custom-gog` (default: `gogcli`).
 
 ### Best Practices
 
@@ -966,7 +970,7 @@ gog sheets notes <spreadsheetId> 'Sheet1!A1:B10'
 gog sheets find-replace <spreadsheetId> "old" "new"
 gog sheets find-replace <spreadsheetId> "old" "new" --sheet Sheet1 --match-entire
 gog sheets links <spreadsheetId> 'Sheet1!A1:B10'
-gog sheets add-tab <spreadsheetId> <tabName>
+gog sheets add-tab <spreadsheetId> <tabName> --index 0
 gog sheets rename-tab <spreadsheetId> <oldName> <newName>
 gog sheets delete-tab <spreadsheetId> <tabName> --force
 ```
@@ -1098,7 +1102,7 @@ gog sheets links <spreadsheetId> 'Sheet1!A1:B10'   # Includes rich-text links
 gog sheets create "My New Spreadsheet" --sheets "Sheet1,Sheet2"
 
 # Tab management
-gog sheets add-tab <spreadsheetId> <tabName>
+gog sheets add-tab <spreadsheetId> <tabName> --index 0
 gog sheets rename-tab <spreadsheetId> <oldName> <newName>
 gog sheets delete-tab <spreadsheetId> <tabName>          # use --force to skip confirmation
 ```
