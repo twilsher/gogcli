@@ -10,12 +10,13 @@ import (
 
 // DocsCommentsCmd is the parent command for comment operations on a Google Doc.
 type DocsCommentsCmd struct {
-	List    DocsCommentsListCmd    `cmd:"" name:"list" aliases:"ls" help:"List comments on a Google Doc"`
-	Get     DocsCommentsGetCmd     `cmd:"" name:"get" aliases:"info,show" help:"Get a comment by ID"`
-	Add     DocsCommentsAddCmd     `cmd:"" name:"add" aliases:"create,new" help:"Add a comment to a Google Doc"`
-	Reply   DocsCommentsReplyCmd   `cmd:"" name:"reply" aliases:"respond" help:"Reply to a comment"`
-	Resolve DocsCommentsResolveCmd `cmd:"" name:"resolve" help:"Resolve a comment (mark as done)"`
-	Delete  DocsCommentsDeleteCmd  `cmd:"" name:"delete" aliases:"rm,del,remove" help:"Delete a comment"`
+	List      DocsCommentsListCmd      `cmd:"" name:"list" aliases:"ls" help:"List comments on a Google Doc"`
+	Get       DocsCommentsGetCmd       `cmd:"" name:"get" aliases:"info,show" help:"Get a comment by ID"`
+	Add       DocsCommentsAddCmd       `cmd:"" name:"add" aliases:"create,new" help:"Add a comment to a Google Doc"`
+	Reply     DocsCommentsReplyCmd     `cmd:"" name:"reply" aliases:"respond" help:"Reply to a comment"`
+	Resolve   DocsCommentsResolveCmd   `cmd:"" name:"resolve" help:"Resolve a comment (mark as done)"`
+	Unresolve DocsCommentsUnresolveCmd `cmd:"" name:"unresolve" aliases:"reopen" help:"Reopen a resolved comment"`
+	Delete    DocsCommentsDeleteCmd    `cmd:"" name:"delete" aliases:"rm,del,remove" help:"Delete a comment"`
 }
 
 // DocsCommentsListCmd lists comments on a Google Doc.
@@ -215,6 +216,47 @@ func (c *DocsCommentsResolveCmd) Run(ctx context.Context, flags *RootFlags) erro
 		return err
 	}
 	return writeDriveReplyMutation(ctx, u, created, true, "docId", docID, commentID)
+}
+
+// DocsCommentsUnresolveCmd reopens a resolved comment by posting a reply with action "reopen".
+type DocsCommentsUnresolveCmd struct {
+	DocID     string `arg:"" name:"docId" help:"Google Doc ID or URL"`
+	CommentID string `arg:"" name:"commentId" help:"Comment ID"`
+	Message   string `name:"message" short:"m" help:"Optional message to include when reopening"`
+}
+
+func (c *DocsCommentsUnresolveCmd) Run(ctx context.Context, flags *RootFlags) error {
+	u := ui.FromContext(ctx)
+	docID := normalizeGoogleID(strings.TrimSpace(c.DocID))
+	commentID := strings.TrimSpace(c.CommentID)
+	if docID == "" {
+		return usage("empty docId")
+	}
+	if commentID == "" {
+		return usage("empty commentId")
+	}
+
+	if err := dryRunExit(ctx, flags, "docs.comments.unresolve", map[string]any{
+		"doc_id":     docID,
+		"comment_id": commentID,
+	}); err != nil {
+		return err
+	}
+
+	_, svc, err := requireDriveService(ctx, flags)
+	if err != nil {
+		return err
+	}
+
+	_, err = unresolveDriveComment(ctx, svc, docID, commentID, c.Message)
+	if err != nil {
+		return err
+	}
+	return writeResult(ctx, u,
+		kv("reopened", true),
+		kv("docId", docID),
+		kv("commentId", commentID),
+	)
 }
 
 // DocsCommentsDeleteCmd deletes a comment on a Google Doc.
