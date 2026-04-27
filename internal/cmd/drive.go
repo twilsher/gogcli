@@ -69,6 +69,7 @@ type DriveCmd struct {
 	Ls          DriveLsCmd          `cmd:"" name:"ls" help:"List files in a folder (default: root)"`
 	Search      DriveSearchCmd      `cmd:"" name:"search" help:"Full-text search across Drive"`
 	Get         DriveGetCmd         `cmd:"" name:"get" help:"Get file metadata"`
+	Create      DriveCreateCmd      `cmd:"" name:"create" aliases:"new" help:"Create a new blank Google Doc, Sheet, or Slides file"`
 	Download    DriveDownloadCmd    `cmd:"" name:"download" help:"Download a file (exports Google Docs formats)"`
 	Copy        DriveCopyCmd        `cmd:"" name:"copy" help:"Copy a file"`
 	Upload      DriveUploadCmd      `cmd:"" name:"upload" help:"Upload a file"`
@@ -148,6 +149,83 @@ func (c *DriveGetCmd) Run(ctx context.Context, flags *RootFlags) error {
 		u.Out().Printf("link\t%s", f.WebViewLink)
 	}
 	return nil
+}
+
+type DriveCreateCmd struct {
+	Name   string `arg:"" name:"name" help:"File name"`
+	Type   string `name:"type" short:"t" help:"File type: doc|sheet|slides" default:"doc"`
+	Parent string `name:"parent" help:"Parent folder ID (default: root)"`
+}
+
+func (c *DriveCreateCmd) Run(ctx context.Context, flags *RootFlags) error {
+	u := ui.FromContext(ctx)
+	account, err := requireAccount(flags)
+	if err != nil {
+		return err
+	}
+	name := strings.TrimSpace(c.Name)
+	if name == "" {
+		return usage("empty name")
+	}
+	mimeType, err := driveCreateMimeType(c.Type)
+	if err != nil {
+		return err
+	}
+
+	if err := dryRunExit(ctx, flags, "drive.create", map[string]any{
+		"name":   name,
+		"type":   c.Type,
+		"parent": c.Parent,
+	}); err != nil {
+		return err
+	}
+
+	svc, err := newDriveService(ctx, account)
+	if err != nil {
+		return err
+	}
+
+	f := &drive.File{
+		Name:     name,
+		MimeType: mimeType,
+	}
+	if parent := strings.TrimSpace(c.Parent); parent != "" {
+		f.Parents = []string{parent}
+	}
+
+	created, err := svc.Files.Create(f).
+		SupportsAllDrives(true).
+		Fields("id, name, mimeType, webViewLink").
+		Context(ctx).
+		Do()
+	if err != nil {
+		return err
+	}
+
+	if outfmt.IsJSON(ctx) {
+		return outfmt.WriteJSON(ctx, os.Stdout, map[string]any{strFile: created})
+	}
+
+	u.Out().Printf("id\t%s", created.Id)
+	u.Out().Printf("name\t%s", created.Name)
+	u.Out().Printf("type\t%s", created.MimeType)
+	if created.WebViewLink != "" {
+		u.Out().Printf("link\t%s", created.WebViewLink)
+	}
+	return nil
+}
+
+func driveCreateMimeType(fileType string) (string, error) {
+	switch strings.ToLower(strings.TrimSpace(fileType)) {
+	case "doc", "document", "":
+		return driveMimeGoogleDoc, nil
+	case "sheet", "sheets", "spreadsheet":
+		return driveMimeGoogleSheet, nil
+	case "slides", "slide", "presentation":
+		return driveMimeGoogleSlides, nil
+	default:
+		return "", usagef("invalid --type %q (use doc|sheet|slides)", fileType)
+	}
 }
 
 type DriveDownloadCmd struct {

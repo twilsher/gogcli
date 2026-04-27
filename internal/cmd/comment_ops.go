@@ -331,6 +331,17 @@ func resolveDriveComment(ctx context.Context, svc *drive.Service, fileID, commen
 		Do()
 }
 
+func unresolveDriveComment(ctx context.Context, svc *drive.Service, fileID, commentID, message string) (*drive.Reply, error) {
+	reply := &drive.Reply{Action: "reopen"}
+	if msg := strings.TrimSpace(message); msg != "" {
+		reply.Content = msg
+	}
+	return svc.Replies.Create(fileID, commentID, reply).
+		Fields(driveResolveReplyCreateFields).
+		Context(ctx).
+		Do()
+}
+
 func writeDriveReplyMutation(ctx context.Context, u *ui.UI, reply *drive.Reply, resolved bool, resourceKey, resourceID, commentID string) error {
 	if outfmt.IsJSON(ctx) {
 		if resolved {
