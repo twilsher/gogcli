@@ -17,7 +17,7 @@ type DriveCommentsCmd struct {
 	Delete  DriveCommentsDeleteCmd  `cmd:"" name:"delete" aliases:"rm,del,remove" help:"Delete a comment"`
 	Reply   DriveCommentReplyCmd    `cmd:"" name:"reply" aliases:"respond" help:"Reply to a comment"`
 	Resolve DriveCommentsResolveCmd `cmd:"" name:"resolve" help:"Resolve a comment (mark as done)"`
-	Reopen  DriveCommentsReopenCmd  `cmd:"" name:"reopen" help:"Reopen a previously resolved comment"`
+	Reopen  DriveCommentsReopenCmd  `cmd:"" name:"reopen" aliases:"unresolve" help:"Reopen a previously resolved comment"`
 }
 
 type DriveCommentsListCmd struct {

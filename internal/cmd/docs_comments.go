@@ -23,7 +23,7 @@ type DocsCommentsCmd struct {
 	Locate  DocsCommentsLocateCmd  `cmd:"" name:"locate" help:"Resolve a comment quote to Docs API index ranges"`
 	Reply   DocsCommentsReplyCmd   `cmd:"" name:"reply" aliases:"respond" help:"Reply to a comment"`
 	Resolve DocsCommentsResolveCmd `cmd:"" name:"resolve" help:"Resolve a comment (mark as done)"`
-	Reopen  DocsCommentsReopenCmd  `cmd:"" name:"reopen" help:"Reopen a previously resolved comment"`
+	Reopen  DocsCommentsReopenCmd  `cmd:"" name:"reopen" aliases:"unresolve" help:"Reopen a previously resolved comment"`
 	Delete  DocsCommentsDeleteCmd  `cmd:"" name:"delete" aliases:"rm,del,remove" help:"Delete a comment"`
 }
 
