@@ -98,6 +98,7 @@ func Execute(args []string) (err error) {
 
 	parser, cli, err := newParser(helpDescription())
 	if err != nil {
+		_, _ = fmt.Fprintln(os.Stderr, errfmt.Format(err))
 		return err
 	}
 
