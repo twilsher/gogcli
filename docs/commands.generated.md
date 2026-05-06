@@ -243,6 +243,7 @@ Generated from `gog schema --json`.
     - [`gog docs (doc) rename-tab <docId> [flags]`](commands/gog-docs-rename-tab.md) - Rename a tab in a Google Doc
     - [`gog docs (doc) sed <docId> [<expression>] [flags]`](commands/gog-docs-sed.md) - Regex find/replace (sed-style: s/pattern/replacement/g)
     - [`gog docs (doc) structure (struct) <docId> [flags]`](commands/gog-docs-structure.md) - Show document structure with numbered paragraphs
+    - [`gog docs (doc) style --style=STRING <docId> [flags]`](commands/gog-docs-style.md) - Apply a named paragraph style (normal, title, subtitle, h1-h6) to a range of paragraphs
     - [`gog docs (doc) tabs <command>`](commands/gog-docs-tabs.md) - Manage Google Doc tabs
       - [`gog docs (doc) tabs add (create,new) <docId> [flags]`](commands/gog-docs-tabs-add.md) - Add a tab to a Google Doc
       - [`gog docs (doc) tabs delete (rm,remove,del) <docId> [flags]`](commands/gog-docs-tabs-delete.md) - Delete a tab from a Google Doc

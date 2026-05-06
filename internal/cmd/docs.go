@@ -39,6 +39,7 @@ type DocsCmd struct {
 	Sed         DocsSedCmd         `cmd:"" name:"sed" help:"Regex find/replace (sed-style: s/pattern/replacement/g)"`
 	Clear       DocsClearCmd       `cmd:"" name:"clear" help:"Clear all content from a Google Doc"`
 	Structure   DocsStructureCmd   `cmd:"" name:"structure" aliases:"struct" help:"Show document structure with numbered paragraphs"`
+	Style       DocsStyleCmd       `cmd:"" name:"style" help:"Apply a named paragraph style (normal, title, subtitle, h1-h6) to a range of paragraphs"`
 	Raw         DocsRawCmd         `cmd:"" name:"raw" help:"Dump raw Google Docs API response as JSON (Documents.Get; lossless; for scripting and LLM consumption)"`
 }
 
