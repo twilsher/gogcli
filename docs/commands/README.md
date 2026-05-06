@@ -2,7 +2,7 @@
 
 Every `gog` command has a generated docs page. The source of truth is the live CLI schema; run `make docs-commands` after changing command names, flags, help text, aliases, or arguments.
 
-Generated pages: 583.
+Generated pages: 584.
 
 ## Top-level Commands
 
@@ -305,6 +305,7 @@ Generated pages: 583.
     - [gog docs rename-tab](gog-docs-rename-tab.md) - Rename a tab in a Google Doc
     - [gog docs sed](gog-docs-sed.md) - Regex find/replace (sed-style: s/pattern/replacement/g)
     - [gog docs structure](gog-docs-structure.md) - Show document structure with numbered paragraphs
+    - [gog docs style](gog-docs-style.md) - Apply a named paragraph style (normal, title, subtitle, h1-h6) to a range of paragraphs
     - [gog docs table-column-width](gog-docs-table-column-width.md) - Set or reset native table column widths
     - [gog docs tabs](gog-docs-tabs.md) - Manage Google Doc tabs
       - [gog docs tabs add](gog-docs-tabs-add.md) - Add a tab to a Google Doc
