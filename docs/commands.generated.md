@@ -400,6 +400,7 @@ Generated from `gog schema --json`.
       - [`gog gmail (mail,email) track status`](commands/gog-gmail-track-status.md) - Show tracking configuration status
     - [`gog gmail (mail,email) trash [<messageId> ...] [flags]`](commands/gog-gmail-trash.md) - Move messages to trash
     - [`gog gmail (mail,email) unread (mark-unread) [<messageId> ...] [flags]`](commands/gog-gmail-unread.md) - Mark messages as unread
+    - [`gog gmail (mail,email) unsubscribe (unsub) <messageId> ...`](commands/gog-gmail-unsubscribe.md) - Unsubscribe via List-Unsubscribe headers
     - [`gog gmail (mail,email) url <threadId> ...`](commands/gog-gmail-url.md) - Print Gmail web URLs for threads
   - [`gog groups (group) <command> [flags]`](commands/gog-groups.md) - Google Groups
     - [`gog groups (group) list (ls) [flags]`](commands/gog-groups-list.md) - List groups you belong to

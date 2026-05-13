@@ -450,6 +450,7 @@ Generated pages: 560.
       - [gog gmail track status](gog-gmail-track-status.md) - Show tracking configuration status
     - [gog gmail trash](gog-gmail-trash.md) - Move messages to trash
     - [gog gmail unread](gog-gmail-unread.md) - Mark messages as unread
+    - [gog gmail unsubscribe](gog-gmail-unsubscribe.md) - Unsubscribe via List-Unsubscribe headers
     - [gog gmail url](gog-gmail-url.md) - Print Gmail web URLs for threads
   - [gog groups](gog-groups.md) - Google Groups
     - [gog groups list](gog-groups-list.md) - List groups you belong to
