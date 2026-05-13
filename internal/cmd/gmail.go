@@ -20,6 +20,7 @@ type GmailCmd struct {
 	Read    GmailReadCmd     `cmd:"" name:"mark-read" aliases:"read-messages" group:"Organize" help:"Mark messages as read"`
 	Unread  GmailUnreadCmd   `cmd:"" name:"unread" aliases:"mark-unread" group:"Organize" help:"Mark messages as unread"`
 	Trash   GmailTrashMsgCmd `cmd:"" name:"trash" group:"Organize" help:"Move messages to trash"`
+	Unsub   GmailUnsubCmd    `cmd:"" name:"unsubscribe" aliases:"unsub" group:"Organize" help:"Unsubscribe via List-Unsubscribe headers"`
 
 	Send      GmailSendCmd      `cmd:"" name:"send" group:"Write" help:"Send an email"`
 	Forward   GmailForwardCmd   `cmd:"" name:"forward" aliases:"fwd" group:"Write" help:"Forward a message to new recipients"`

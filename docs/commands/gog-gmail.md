@@ -35,6 +35,7 @@ gog gmail (mail,email) <command> [flags]
 - [gog gmail track](gog-gmail-track.md) - Email open tracking
 - [gog gmail trash](gog-gmail-trash.md) - Move messages to trash
 - [gog gmail unread](gog-gmail-unread.md) - Mark messages as unread
+- [gog gmail unsubscribe](gog-gmail-unsubscribe.md) - Unsubscribe via List-Unsubscribe headers
 - [gog gmail url](gog-gmail-url.md) - Print Gmail web URLs for threads
 
 ## Flags
