@@ -12,8 +12,8 @@ import (
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/option"
 
-	"github.com/steipete/gogcli/internal/outfmt"
-	"github.com/steipete/gogcli/internal/ui"
+	"github.com/openclaw/gogcli/internal/outfmt"
+	"github.com/openclaw/gogcli/internal/ui"
 )
 
 func makeDriveTestService(t *testing.T, handler http.HandlerFunc) (*drive.Service, func()) {
@@ -45,8 +45,6 @@ func makeTestContext(t *testing.T, json bool) (context.Context, *strings.Builder
 
 // TestDriveCreateCmd_Doc verifies that drive create posts to /files with the correct mimeType.
 func TestDriveCreateCmd_Doc(t *testing.T) {
-	origNew := newDriveService
-	t.Cleanup(func() { newDriveService = origNew })
 
 	svc, closeSrv := makeDriveTestService(t, func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/drive/v3")
@@ -73,9 +71,9 @@ func TestDriveCreateCmd_Doc(t *testing.T) {
 		})
 	})
 	defer closeSrv()
-	newDriveService = func(context.Context, string) (*drive.Service, error) { return svc, nil }
 
 	ctx, _ := makeTestContext(t, true)
+	ctx = withDriveTestService(ctx, svc)
 	flags := &RootFlags{Account: "a@b.com"}
 
 	out := captureStdout(t, func() {
@@ -98,8 +96,6 @@ func TestDriveCreateCmd_Doc(t *testing.T) {
 
 // TestDriveCreateCmd_Sheet verifies --type sheet sends the sheet mimeType.
 func TestDriveCreateCmd_Sheet(t *testing.T) {
-	origNew := newDriveService
-	t.Cleanup(func() { newDriveService = origNew })
 
 	svc, closeSrv := makeDriveTestService(t, func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/drive/v3")
@@ -118,9 +114,9 @@ func TestDriveCreateCmd_Sheet(t *testing.T) {
 		})
 	})
 	defer closeSrv()
-	newDriveService = func(context.Context, string) (*drive.Service, error) { return svc, nil }
 
 	ctx, _ := makeTestContext(t, true)
+	ctx = withDriveTestService(ctx, svc)
 	flags := &RootFlags{Account: "a@b.com"}
 
 	out := captureStdout(t, func() {
@@ -142,14 +138,13 @@ func TestDriveCreateCmd_Sheet(t *testing.T) {
 
 // TestDriveCreateCmd_InvalidType verifies that an unknown --type returns a usage error.
 func TestDriveCreateCmd_InvalidType(t *testing.T) {
-	origNew := newDriveService
-	t.Cleanup(func() { newDriveService = origNew })
-	newDriveService = func(context.Context, string) (*drive.Service, error) {
+	factory := func(context.Context, string) (*drive.Service, error) {
 		t.Fatal("should not reach API for invalid type")
 		return nil, nil
 	}
 
 	ctx, _ := makeTestContext(t, false)
+	ctx = withDriveTestServiceFactory(ctx, factory)
 	flags := &RootFlags{Account: "a@b.com"}
 	cmd := &DriveCreateCmd{}
 	err := runKong(t, cmd, []string{"--type", "bogus", "My File"}, ctx, flags)
@@ -160,8 +155,6 @@ func TestDriveCreateCmd_InvalidType(t *testing.T) {
 
 // TestDriveCommentsResolveCmd verifies resolve posts a reply with action="resolve".
 func TestDriveCommentsResolveCmd(t *testing.T) {
-	origNew := newDriveService
-	t.Cleanup(func() { newDriveService = origNew })
 
 	svc, closeSrv := makeDriveTestService(t, func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/drive/v3")
@@ -180,9 +173,9 @@ func TestDriveCommentsResolveCmd(t *testing.T) {
 		})
 	})
 	defer closeSrv()
-	newDriveService = func(context.Context, string) (*drive.Service, error) { return svc, nil }
 
 	ctx, _ := makeTestContext(t, true)
+	ctx = withDriveTestService(ctx, svc)
 	flags := &RootFlags{Account: "a@b.com"}
 
 	out := captureStdout(t, func() {
@@ -206,8 +199,6 @@ func TestDriveCommentsResolveCmd(t *testing.T) {
 
 // TestDriveCommentsUnresolveCmd verifies unresolve posts a reply with action="reopen".
 func TestDriveCommentsUnresolveCmd(t *testing.T) {
-	origNew := newDriveService
-	t.Cleanup(func() { newDriveService = origNew })
 
 	svc, closeSrv := makeDriveTestService(t, func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/drive/v3")
@@ -226,13 +217,13 @@ func TestDriveCommentsUnresolveCmd(t *testing.T) {
 		})
 	})
 	defer closeSrv()
-	newDriveService = func(context.Context, string) (*drive.Service, error) { return svc, nil }
 
 	ctx, _ := makeTestContext(t, true)
+	ctx = withDriveTestService(ctx, svc)
 	flags := &RootFlags{Account: "a@b.com"}
 
 	out := captureStdout(t, func() {
-		cmd := &DriveCommentsUnresolveCmd{}
+		cmd := &DriveCommentsReopenCmd{}
 		if err := runKong(t, cmd, []string{"fid1", "cid1"}, ctx, flags); err != nil {
 			t.Fatalf("execute: %v", err)
 		}

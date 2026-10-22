@@ -196,7 +196,7 @@ func (c *DriveCreateCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
-	svc, err := newDriveService(ctx, account)
+	svc, err := driveService(ctx, account)
 	if err != nil {
 		return err
 	}
@@ -219,14 +219,14 @@ func (c *DriveCreateCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(ctx, os.Stdout, map[string]any{strFile: created})
+		return outfmt.WriteJSON(ctx, stdoutWriter(ctx), map[string]any{strFile: created})
 	}
 
-	u.Out().Printf("id\t%s", created.Id)
-	u.Out().Printf("name\t%s", created.Name)
-	u.Out().Printf("type\t%s", created.MimeType)
+	u.Out().Linef("id\t%s", created.Id)
+	u.Out().Linef("name\t%s", created.Name)
+	u.Out().Linef("type\t%s", created.MimeType)
 	if created.WebViewLink != "" {
-		u.Out().Printf("link\t%s", created.WebViewLink)
+		u.Out().Linef("link\t%s", created.WebViewLink)
 	}
 	return nil
 }

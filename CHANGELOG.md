@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased (Thomas's patched build)
+
+- Rebase the custom command surface onto upstream v0.46.0: preserve `drive create`, `docs style`, and `comments unresolve` (an alias for upstream `reopen`).
+- Adapt custom commands and tests to upstream's runtime services and output writers; make `docs style --dry-run` non-mutating.
+
 ## 0.46.0 - 2026-10-20
 
 **Highlights:** Safely re-encrypt auth stores, route Google API calls through credential-free relays, and compose richer Gmail forwards, with Go security fixes.

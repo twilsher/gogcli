@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"google.golang.org/api/docs/v1"
@@ -14,21 +13,21 @@ import (
 
 // validNamedStyles lists all accepted Google Docs named style types.
 var validNamedStyles = map[string]string{
-	"normal":    "NORMAL_TEXT",
-	"title":     "TITLE",
-	"subtitle":  "SUBTITLE",
-	"heading1":  "HEADING_1",
-	"heading2":  "HEADING_2",
-	"heading3":  "HEADING_3",
-	"heading4":  "HEADING_4",
-	"heading5":  "HEADING_5",
-	"heading6":  "HEADING_6",
-	"h1":        "HEADING_1",
-	"h2":        "HEADING_2",
-	"h3":        "HEADING_3",
-	"h4":        "HEADING_4",
-	"h5":        "HEADING_5",
-	"h6":        "HEADING_6",
+	"normal":   "NORMAL_TEXT",
+	"title":    "TITLE",
+	"subtitle": "SUBTITLE",
+	"heading1": "HEADING_1",
+	"heading2": "HEADING_2",
+	"heading3": "HEADING_3",
+	"heading4": "HEADING_4",
+	"heading5": "HEADING_5",
+	"heading6": "HEADING_6",
+	"h1":       "HEADING_1",
+	"h2":       "HEADING_2",
+	"h3":       "HEADING_3",
+	"h4":       "HEADING_4",
+	"h5":       "HEADING_5",
+	"h6":       "HEADING_6",
 	// Also accept raw API names directly.
 	"NORMAL_TEXT": "NORMAL_TEXT",
 	"TITLE":       "TITLE",
@@ -81,6 +80,13 @@ func (c *DocsStyleCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 	if hasParagraphs && hasFind {
 		return usage("cannot use both --paragraphs and --find")
+	}
+
+	if err := dryRunExit(ctx, flags, "docs.style", map[string]any{
+		"document_id": docID, "style": namedStyle, "paragraphs": c.Paragraphs,
+		"find": c.Find, "through": c.Through, "tab_id": c.TabID,
+	}); err != nil {
+		return err
 	}
 
 	svc, err := requireDocsService(ctx, flags)
@@ -153,15 +159,15 @@ func (c *DocsStyleCmd) Run(ctx context.Context, flags *RootFlags) error {
 		if c.TabID != "" {
 			payload["tabId"] = c.TabID
 		}
-		return outfmt.WriteJSON(ctx, os.Stdout, payload)
+		return outfmt.WriteJSON(ctx, stdoutWriter(ctx), payload)
 	}
 
-	u.Out().Printf("documentId\t%s", result.DocumentId)
-	u.Out().Printf("style\t%s", namedStyle)
-	u.Out().Printf("paragraphs\t%v", targets)
-	u.Out().Printf("count\t%d", len(targets))
+	u.Out().Linef("documentId\t%s", result.DocumentId)
+	u.Out().Linef("style\t%s", namedStyle)
+	u.Out().Linef("paragraphs\t%v", targets)
+	u.Out().Linef("count\t%d", len(targets))
 	if c.TabID != "" {
-		u.Out().Printf("tabId\t%s", c.TabID)
+		u.Out().Linef("tabId\t%s", c.TabID)
 	}
 	return nil
 }
