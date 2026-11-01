@@ -2,6 +2,8 @@
 
 ## Unreleased (Thomas's patched build)
 
+- Allow `drive upload --replace ID --convert-to doc` to import embedded-image DOCX into an existing Google Doc without public image sharing, preserving its ID and permissions.
+
 - Rebase the custom command surface onto upstream v0.46.0: preserve `drive create`, `docs style`, and `comments unresolve` (an alias for upstream `reopen`).
 - Adapt custom commands and tests to upstream's runtime services and output writers; make `docs style --dry-run` non-mutating.
 

@@ -104,6 +104,53 @@ func TestDriveUpload_Replace_JSON(t *testing.T) {
 	}
 }
 
+func TestDriveUpload_Replace_ImportGoogleDoc(t *testing.T) {
+	for _, mime := range []string{driveMimeGoogleDoc, "application/pdf", "application/vnd.google-apps.spreadsheet"} {
+		t.Run(mime, func(t *testing.T) {
+			patched := false
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				switch r.Method {
+				case http.MethodGet:
+					_ = json.NewEncoder(w).Encode(map[string]string{"id": "doc1", "mimeType": mime})
+				case http.MethodPatch:
+					patched = true
+					body, _ := io.ReadAll(r.Body)
+					if !strings.Contains(string(body), mimeDocx) || !strings.Contains(string(body), "embedded-image") {
+						t.Error("missing DOCX media in upload")
+					}
+					if r.URL.Path != "/upload/drive/v3/files/doc1" {
+						t.Errorf("wrong upload target: %s", r.URL.Path)
+					}
+					_ = json.NewEncoder(w).Encode(map[string]string{"id": "doc1", "mimeType": mime})
+				default:
+					t.Errorf("unexpected operation: %s %s", r.Method, r.URL.Path)
+				}
+			}))
+			defer srv.Close()
+			svc, err := drive.NewService(context.Background(), option.WithoutAuthentication(),
+				option.WithHTTPClient(srv.Client()), option.WithEndpoint(srv.URL+"/"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			local := filepath.Join(t.TempDir(), "upload.docx")
+			if err := os.WriteFile(local, []byte("embedded-image"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			var out bytes.Buffer
+			ctx := withDriveTestService(newCmdRuntimeJSONOutputContext(t, &out, io.Discard), svc)
+			err = runKong(t, &DriveUploadCmd{}, []string{local, "--replace", "doc1", "--convert-to", "doc"}, ctx, &RootFlags{Account: "a@b.com"})
+			if mime == driveMimeGoogleDoc {
+				if err != nil || !patched {
+					t.Fatalf("import failed: %v, patched=%v", err, patched)
+				}
+			} else if err == nil || patched {
+				t.Fatalf("wrong MIME accepted: err=%v, patched=%v", err, patched)
+			}
+		})
+	}
+}
+
 func TestDriveUpload_Replace_Text(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/drive/v3")

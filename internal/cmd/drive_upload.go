@@ -31,7 +31,7 @@ type DriveUploadCmd struct {
 	MimeType            string `name:"mime-type" help:"Override MIME type inference"`
 	KeepRevisionForever bool   `name:"keep-revision-forever" help:"Keep the new head revision forever (binary files only)"`
 	Convert             bool   `name:"convert" help:"Auto-convert to native Google format based on file extension (create only)"`
-	ConvertTo           string `name:"convert-to" help:"Convert to a specific Google format: doc|sheet|slides (create only)"`
+	ConvertTo           string `name:"convert-to" help:"Convert to doc|sheet|slides (replace supports doc into an existing Google Doc)"`
 	KeepFrontmatter     bool   `name:"keep-frontmatter" help:"Keep YAML frontmatter (---) in Markdown when converting to a Google Doc (--convert or --convert-to doc; default: strip)"`
 }
 
@@ -241,7 +241,11 @@ func prepareDriveUpload(c *DriveUploadCmd) (driveUploadOptions, error) {
 		return driveUploadOptions{}, usage("--parent cannot be combined with --replace (use drive move)")
 	}
 	if opts.replaceFileID != "" && (c.Convert || strings.TrimSpace(c.ConvertTo) != "") {
-		return driveUploadOptions{}, usage("--convert/--convert-to cannot be combined with --replace")
+		if c.Convert || c.ConvertTo != "doc" || opts.ifVersion != nil || opts.keepRevisionForever {
+			return driveUploadOptions{}, usage("replacement conversion requires --convert-to doc without --convert, --if-version or --keep-revision-forever")
+		}
+		opts.convertMimeType = driveMimeGoogleDoc
+		opts.convert = true
 	}
 	if opts.mimeType == "" {
 		opts.mimeType = guessMimeType(opts.localPath)
@@ -333,7 +337,11 @@ func runDriveReplaceUpload(ctx context.Context, svc *drive.Service, file io.Read
 	if err != nil {
 		return err
 	}
-	if strings.HasPrefix(existing.MimeType, "application/vnd.google-apps.") {
+	if opts.convert {
+		if existing.MimeType != driveMimeGoogleDoc || opts.convertMimeType != driveMimeGoogleDoc {
+			return usage("--replace --convert-to doc requires an existing Google Doc")
+		}
+	} else if strings.HasPrefix(existing.MimeType, "application/vnd.google-apps.") {
 		return usagef("cannot replace content for Google Workspace files (mimeType=%s)", existing.MimeType)
 	}
 
